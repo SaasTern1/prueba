@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taars - Plataforma de Clases</title>
+    <style>
+        /* --- ESTILOS GLOBALES --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 250px;
+            background-color: #111827;
+            color: white;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar h1 {
+            color: #60a5fa;
+            font-size: 24px;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: white;
+            text-align: left;
+            padding: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.3s;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background-color: #1f2937;
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* --- CONTENIDO PRINCIPAL --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+        }
+
+        .view-section {
+            display: none; /* Oculto por defecto, el JS lo controla */
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        h2 { margin-bottom: 20px; color: #1f2937; }
+
+        /* --- FORMULARIOS Y TABLAS --- */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #4b5563; }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        input[readonly] { background-color: #f3f4f6; color: #6b7280; }
+
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .btn:hover { background-color: #1d4ed8; }
+        .btn-danger { background-color: #dc2626; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-success { background-color: #16a34a; }
+        .btn-success:hover { background-color: #15803d; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th { background-color: #f9fafb; font-weight: bold; }
+
+        .badge {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* --- ELEMENTOS ESPECÍFICOS --- */
+        .audio-box {
+            background-color: #f9fafb;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .audio-box input { flex: 1; }
+        .audio-box .btn { width: auto; }
+
+        .task-validation-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f9fafb;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .task-validation-item input[type="checkbox"] { width: 20px; height: 20px; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h1>TAARS</h1>
+        <button class="nav-btn" onclick="showTab('profesores')">Gestión Profesores</button>
+        <button class="nav-btn active" id="btn-nueva-clase" onclick="showTab('nueva-clase')">Nueva Clase</button>
+        <button class="nav-btn" onclick="showTab('tareas')">Gestión de Tareas</button>
+    </aside>
+
+    <main class="main-content">
+        
+        <section id="profesores" class="view-section">
+            <h2>Gestión de Profesores</h2>
+            <table>
+                <thead>
+                    <tr><th>Nombre</th><th>Categoría (Materia)</th></tr>
+                </thead>
+                <tbody id="profesores-tbody">
+                    </tbody>
+            </table>
+        </section>
+
+        <section id="nueva-clase" class="view-section active">
+            <h2>Crear Nueva Clase</h2>
+            <div class="form-group">
+                <label>Categoría (Materia)</label>
+                <select id="select-categoria" onchange="autoAssignProfessor()">
+                    <option value="">Seleccionar...</option>
+                    <option value="Español">Español</option>
+                    <option value="Matemáticas">Matemáticas</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Profesor Asignado (Automático)</label>
+                <input type="text" id="input-profesor" readonly placeholder="Esperando selección...">
+            </div>
+            <div class="form-group">
+                <label>Día de Clase</label>
+                <input type="number" id="input-dia" value="1" min="1">
+            </div>
+            <button class="btn" onclick="iniciarClase()">Iniciar Clase</button>
+        </section>
+
+        <section id="clase-activa" class="view-section">
+            <h2 id="titulo-clase-activa">Clase en Curso</h2>
+            <p id="info-clase-activa" style="margin-bottom: 20px; color: #6b7280;"></p>
+
+            <div class="audio-box">
+                <input type="text" id="input-audio" placeholder="Escribe una palabra o frase para generar audio...">
+                <button class="btn btn-success" onclick="reproducirAudio()">🔊 Escuchar</button>
+            </div>
+
+            <button class="btn btn-danger" onclick="showTab('post-clase')">Finalizar Clase</button>
+        </section>
+
+        <section id="post-clase" class="view-section">
+            <h2>Reporte de Clase Finalizada</h2>
+            <div class="form-group">
+                <label>Resumen / Notas (Separa por líneas para detectar tareas)</label>
+                <textarea id="textarea-resumen" rows="5">1. Leer capítulo 4
+2. Traer materiales para maqueta
+3. Conceptos básicos de suma explicados</textarea>
+            </div>
+            <button class="btn" onclick="generarValidacion()">Generar Tareas desde el Resumen</button>
+
+            <div id="contenedor-validacion" style="margin-top: 20px; display: none;">
+                <h3>Verifica: ¿Cuáles son tareas?</h3>
+                <div id="lista-validacion"></div>
+                <button class="btn btn-success" style="margin-top: 20px;" onclick="guardarTareas()">Guardar Tareas Oficiales</button>
+            </div>
+        </section>
+
+        <section id="tareas" class="view-section">
+            <h2>Gestor de Tareas y Notas</h2>
+            <table>
+                <thead>
+                    <tr><th>Descripción</th><th>Estado</th><th>Calificación</th></tr>
+                </thead>
+                <tbody id="tareas-tbody">
+                    <tr><td colspan="3" style="text-align:center; color:#6b7280;">No hay tareas registradas aún.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script>
+        // --- BASE DE DATOS SIMULADA ---
+        const profesoresDB = [
+            { id: 1, nombre: 'Prof. Ana Gómez', categoria: 'Matemáticas' },
+            { id: 2, nombre: 'Prof. Carlos Ruiz', categoria: 'Español' }
+        ];
+        
+        let tareasOficiales = [];
+        let idiomaActual = 'es-ES'; // Para el sintetizador de voz
+
+        // Cargar Profesores al iniciar
+        window.onload = () => {
+            const tbody = document.getElementById('profesores-tbody');
+            profesoresDB.forEach(prof => {
+                tbody.innerHTML += `<tr><td>${prof.nombre}</td><td><span class="badge">${prof.categoria}</span></td></tr>`;
+            });
+        };
+
+        // --- SISTEMA DE NAVEGACIÓN ---
+        function showTab(tabId) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            // Quitar clase active de los botones
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mostrar la sección solicitada
+            document.getElementById(tabId).classList.add('active');
+            
+            // Iluminar botón del sidebar (si existe)
+            const btn = document.querySelector(`.nav-btn[onclick="showTab('${tabId}')"]`);
+            if(btn) btn.classList.add('active');
+        }
+
+        // --- LÓGICA: NUEVA CLASE ---
+        function autoAssignProfessor() {
+            const categoriaSel = document.getElementById('select-categoria').value;
+            const inputProf = document.getElementById('input-profesor');
+            
+            const profesorEncontrado = profesoresDB.find(p => p.categoria === categoriaSel);
+            
+            if (profesorEncontrado) {
+                inputProf.value = profesorEncontrado.nombre;
+                idiomaActual = (categoriaSel === 'Español') ? 'es-ES' : 'en-US'; 
+            } else {
+                inputProf.value = "Sin profesor asignado";
+            }
+        }
+
+        function iniciarClase() {
+            const categoria = document.getElementById('select-categoria').value;
+            const profesor = document.getElementById('input-profesor').value;
+            const dia = document.getElementById('input-dia').value;
+
+            if (!categoria) return alert("Por favor selecciona una categoría.");
+
+            document.getElementById('titulo-clase-activa').innerText = `Clase: ${categoria}`;
+            document.getElementById('info-clase-activa').innerText = `Profesor: ${profesor} | Día: ${dia}`;
+            
+            showTab('clase-activa');
+        }
+
+        // --- LÓGICA: AUDIO (TEXT-TO-SPEECH) ---
+        function reproducirAudio() {
+            const texto = document.getElementById('input-audio').value;
+            if (!texto) return alert("Escribe algo para escuchar.");
+
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(texto);
+                utterance.lang = idiomaActual;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Tu navegador no soporta generación de audio.");
+            }
+        }
+
+        // --- LÓGICA: POST-CLASE Y VALIDACIÓN ---
+        function generarValidacion() {
+            const resumen = document.getElementById('textarea-resumen').value;
+            const lineas = resumen.split('\n').filter(linea => linea.trim() !== '');
+            const listaDiv = document.getElementById('lista-validacion');
+            
+            listaDiv.innerHTML = ''; // Limpiar lista anterior
+            
+            lineas.forEach((linea, index) => {
+                listaDiv.innerHTML += `
+                    <div class="task-validation-item">
+                        <input type="checkbox" id="tarea-${index}" checked>
+                        <label for="tarea-${index}" style="margin:0; flex:1;">${linea}</label>
+                        <span class="badge">Posible Tarea</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('contenedor-validacion').style.display = 'block';
+        }
+
+        function guardarTareas() {
+            const items = document.querySelectorAll('.task-validation-item');
+            
+            items.forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const texto = item.querySelector('label').innerText;
+                
+                // Si el checkbox se dejó marcado, lo guardamos como tarea oficial
+                if (checkbox.checked) {
+                    tareasOficiales.push(texto);
+                }
+            });
+
+            actualizarTablaTareas();
+            showTab('tareas');
+            
+            // Limpiar datos para la próxima clase
+            document.getElementById('contenedor-validacion').style.display = 'none';
+        }
+
+        // --- LÓGICA: GESTIÓN DE TAREAS ---
+        function actualizarTablaTareas() {
+            const tbody = document.getElementById('tareas-tbody');
+            if (tareasOficiales.length === 0) return;
+
+            tbody.innerHTML = ''; // Limpiar mensaje de "No hay tareas"
+            
+            tareasOficiales.forEach(tarea => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${tarea}</td>
+                        <td><span class="badge" style="background-color: #fef08a; color: #854d0e;">Pendiente</span></td>
+                        <td><input type="number" placeholder="0/100" style="width: 80px; padding: 4px;"></td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
