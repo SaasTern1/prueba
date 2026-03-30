@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taars - Plataforma Inteligente</title>
+    <title>Taars - Plataforma Educativa</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         /* --- ESTILOS GLOBALES --- */
@@ -16,13 +16,48 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { display: flex; flex-direction: column; min-height: 100vh; background-color: var(--bg-light); color: var(--text-dark); }
+        body { display: flex; flex-direction: column; min-height: 100vh; background-color: var(--bg-light); color: var(--text-dark); overflow-x: hidden; }
+
+        /* --- PANTALLA DE LOGIN --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; color: white;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px;
+            text-align: center; color: var(--text-dark); box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 400px; width: 90%;
+        }
+        .login-box h1 { color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 10px; letter-spacing: 2px;}
+        .login-box p { color: #64748b; margin-bottom: 30px; }
+        
+        .btn-google {
+            background: white; border: 1px solid #e2e8f0; color: #334155;
+            padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 8px;
+            cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s;
+        }
+        .btn-google:hover { background: #f8fafc; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-google img { width: 24px; }
+
+        /* --- APP PRINCIPAL (Oculta por defecto) --- */
+        #app-container { display: none; width: 100%; flex: 1; flex-direction: column; }
+        @media (min-width: 768px) { #app-container { flex-direction: row; } }
 
         /* --- SIDEBAR --- */
         .sidebar { background-color: var(--secondary-color); color: white; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
         .sidebar h1 { color: #60a5fa; font-weight: 800; letter-spacing: 1px; margin-bottom: 1rem; text-align: center; }
         .nav-btn { background: none; border: none; color: #cbd5e1; text-align: left; padding: 10px 15px; font-size: 1rem; font-weight: 600; cursor: pointer; border-radius: 8px; transition: 0.2s; }
         .nav-btn:hover, .nav-btn.active { background-color: rgba(255,255,255,0.1); color: white; border-left: 4px solid var(--primary-color); }
+
+        /* PERFIL DE USUARIO EN SIDEBAR */
+        .user-profile { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .user-profile img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #60a5fa; }
+        .user-profile span { font-size: 0.9rem; font-weight: 600; text-align: center; word-break: break-all; }
+        .btn-logout { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        .btn-logout:hover { background: #ef4444; color: white; }
 
         /* --- CONTENIDO --- */
         .main-content { flex: 1; padding: 1.5rem; width: 100%; }
@@ -32,8 +67,7 @@
         h2 { margin-bottom: 1.5rem; color: var(--secondary-color); font-weight: 800; }
 
         @media (min-width: 768px) {
-            body { flex-direction: row; }
-            .sidebar { width: var(--sidebar-width); height: 100vh; position: sticky; top: 0; padding: 2rem; }
+            .sidebar { width: var(--sidebar-width); height: 100vh; position: sticky; top: 0; padding: 2rem; display: flex; }
             .main-content { padding: 3rem; }
             .view-section { padding: 2.5rem; }
         }
@@ -59,7 +93,6 @@
         .badge-pending { background-color: #fef08a; color: #854d0e; }
         .badge-done { background-color: #d1fae5; color: #065f46; }
 
-        /* --- CARDS DE HISTORIAL --- */
         .class-card { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
         .class-header { background-color: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
         .class-body { padding: 15px; }
@@ -75,110 +108,131 @@
 </head>
 <body>
 
-    <nav class="sidebar">
-        <h1>TAARS</h1>
-        <button class="nav-btn active" id="btn-profesores">👨‍🏫 Profesores</button>
-        <button class="nav-btn" id="btn-nueva-clase">➕ Nueva Clase</button>
-        <button class="nav-btn" id="btn-historial">📚 Historial y Tareas</button>
-    </nav>
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>TAARS</h1>
+            <p>Tu plataforma educativa inteligente</p>
+            <button id="btn-login-google" class="btn-google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                Iniciar sesión con Google
+            </button>
+        </div>
+    </div>
 
-    <main class="main-content">
-        
-        <section id="profesores" class="view-section active">
-            <h2>Gestión de Profesores</h2>
-            <div class="form-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <label>Nombre del Profesor</label>
-                    <input type="text" id="nuevo-prof-nombre" placeholder="Ej. Prof. Luis Pérez">
+    <div id="app-container">
+        <nav class="sidebar">
+            <h1>TAARS</h1>
+            <button class="nav-btn active" id="btn-profesores">👨‍🏫 Profesores</button>
+            <button class="nav-btn" id="btn-nueva-clase">➕ Nueva Clase</button>
+            <button class="nav-btn" id="btn-historial">📚 Historial y Tareas</button>
+
+            <div class="user-profile">
+                <img id="user-photo" src="" alt="Perfil">
+                <span id="user-name">Cargando...</span>
+                <button class="btn-logout" id="btn-logout">Cerrar Sesión</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            
+            <section id="profesores" class="view-section active">
+                <h2>Mis Profesores</h2>
+                <div class="form-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label>Nombre del Profesor</label>
+                        <input type="text" id="nuevo-prof-nombre" placeholder="Ej. Prof. Luis Pérez">
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label>Categoría (Materia)</label>
+                        <input type="text" id="nuevo-prof-categoria" placeholder="Ej. Ciencias">
+                    </div>
+                    <button class="btn btn-success" id="btn-guardar-profesor" style="width: auto; align-self: flex-end;">Guardar</button>
                 </div>
-                <div style="flex: 1; min-width: 200px;">
-                    <label>Categoría (Materia)</label>
-                    <input type="text" id="nuevo-prof-categoria" placeholder="Ej. Ciencias">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>Nombre</th><th>Categoría</th></tr></thead>
+                        <tbody id="profesores-tbody"><tr><td colspan="2">Cargando...</td></tr></tbody>
+                    </table>
                 </div>
-                <button class="btn btn-success" id="btn-guardar-profesor" style="width: auto; align-self: flex-end;">Guardar</button>
-            </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead><tr><th>Nombre</th><th>Categoría</th></tr></thead>
-                    <tbody id="profesores-tbody"><tr><td colspan="2">Cargando...</td></tr></tbody>
-                </table>
-            </div>
-        </section>
+            </section>
 
-        <section id="nueva-clase" class="view-section">
-            <h2>Crear Nueva Clase</h2>
-            <div class="form-group">
-                <label>Categoría (Materia)</label>
-                <select id="select-categoria"><option value="">Selecciona un profesor primero...</option></select>
-            </div>
-            <div class="form-group">
-                <label>Profesor Asignado</label>
-                <input type="text" id="input-profesor" readonly placeholder="Automático...">
-            </div>
-            <div class="form-group">
-                <label>Día de Clase</label>
-                <input type="number" id="input-dia" value="1" min="1">
-            </div>
-            <button class="btn" id="btn-iniciar-clase">Iniciar Clase Ahora</button>
-        </section>
-
-        <section id="clase-activa" class="view-section">
-            <h2 id="titulo-clase-activa">Clase en Curso</h2>
-            <p id="info-clase-activa" style="margin-bottom: 25px; color: #64748b;"></p>
-            
-            <div class="form-group">
-               <label>📝 Transcripción y Apuntes en vivo</label>
-               <textarea id="notas-en-clase" class="live-notes" placeholder="Haz clic en 'Iniciar Micrófono' y habla..."></textarea>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
-                <button class="btn btn-outline" id="btn-microfono" style="width: auto;">🎙️ Iniciar Micrófono</button>
-                <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando...</span>
-            </div>
-            <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Revisar</button>
-        </section>
-
-        <section id="post-clase" class="view-section">
-            <h2>Reporte Inteligente</h2>
-            
-            <div class="form-group" style="background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px solid #7dd3fc;">
-                <label style="color: #0369a1;">🔑 Tu nueva API Key de Gemini</label>
-                <input type="password" id="input-api-key" placeholder="Pega aquí tu clave...">
-                <small style="color: #0369a1;">Se guardará de forma segura en tu navegador, no en GitHub.</small>
-            </div>
-
-            <div class="form-group">
-                <label>Texto Capturado (Audio a Texto)</label>
-                <textarea id="textarea-apuntes-capturados" rows="5" style="border: 2px solid var(--primary-color);"></textarea>
-            </div>
-            
-            <button class="btn btn-outline" id="btn-procesar-ia" style="margin-bottom: 20px;">✨ Generar Resumen y Tareas</button>
-
-            <div id="loading-gemini" style="display: none; text-align: center;"><div class="loader"></div></div>
-
-            <div id="resultado-gemini" style="display: none;">
+            <section id="nueva-clase" class="view-section">
+                <h2>Crear Nueva Clase</h2>
                 <div class="form-group">
-                    <label>Resumen de la Clase</label>
-                    <textarea id="textarea-resumen-ia" rows="4" readonly></textarea>
+                    <label>Categoría (Materia)</label>
+                    <select id="select-categoria"><option value="">Selecciona un profesor primero...</option></select>
                 </div>
-                <h3>Verifica las Tareas</h3>
-                <div id="lista-validacion-ia" style="margin-bottom: 20px; margin-top: 10px;"></div>
-                <button class="btn btn-success" id="btn-guardar-clase">Guardar Clase y Tareas en el Historial</button>
-            </div>
-        </section>
+                <div class="form-group">
+                    <label>Profesor Asignado</label>
+                    <input type="text" id="input-profesor" readonly placeholder="Automático...">
+                </div>
+                <div class="form-group">
+                    <label>Día de Clase</label>
+                    <input type="number" id="input-dia" value="1" min="1">
+                </div>
+                <button class="btn" id="btn-iniciar-clase">Iniciar Clase Ahora</button>
+            </section>
 
-        <section id="historial" class="view-section">
-            <h2>Historial de Clases y Control de Tareas</h2>
-            <div id="contenedor-clases">
-                <p style="text-align:center; color:#64748b; padding: 20px;">No hay clases registradas aún.</p>
-            </div>
-        </section>
+            <section id="clase-activa" class="view-section">
+                <h2 id="titulo-clase-activa">Clase en Curso</h2>
+                <p id="info-clase-activa" style="margin-bottom: 25px; color: #64748b;"></p>
+                
+                <div class="form-group">
+                   <label>📝 Transcripción y Apuntes en vivo</label>
+                   <textarea id="notas-en-clase" class="live-notes" placeholder="Haz clic en 'Iniciar Micrófono' y habla..."></textarea>
+                </div>
 
-    </main>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                    <button class="btn btn-outline" id="btn-microfono" style="width: auto;">🎙️ Iniciar Micrófono</button>
+                    <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando...</span>
+                </div>
+                <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Revisar</button>
+            </section>
+
+            <section id="post-clase" class="view-section">
+                <h2>Reporte Inteligente</h2>
+                
+                <div class="form-group" style="background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px solid #7dd3fc;">
+                    <label style="color: #0369a1;">🔑 API Key de Gemini</label>
+                    <input type="password" id="input-api-key" placeholder="Pega aquí tu clave (se guarda localmente)...">
+                </div>
+
+                <div class="form-group">
+                    <label>Texto Capturado (Audio a Texto)</label>
+                    <textarea id="textarea-apuntes-capturados" rows="5" style="border: 2px solid var(--primary-color);"></textarea>
+                </div>
+                
+                <button class="btn btn-outline" id="btn-procesar-ia" style="margin-bottom: 20px;">✨ Generar Resumen y Tareas</button>
+
+                <div id="loading-gemini" style="display: none; text-align: center;"><div class="loader"></div></div>
+
+                <div id="resultado-gemini" style="display: none;">
+                    <div class="form-group">
+                        <label>Resumen de la Clase</label>
+                        <textarea id="textarea-resumen-ia" rows="4" readonly></textarea>
+                    </div>
+                    <h3>Verifica las Tareas</h3>
+                    <div id="lista-validacion-ia" style="margin-bottom: 20px; margin-top: 10px;"></div>
+                    <button class="btn btn-success" id="btn-guardar-clase">Guardar Clase y Tareas</button>
+                </div>
+            </section>
+
+            <section id="historial" class="view-section">
+                <h2>Mi Historial y Tareas</h2>
+                <div id="contenedor-clases">
+                    <p style="text-align:center; color:#64748b; padding: 20px;">No hay clases registradas aún.</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // Importar Módulos de Autenticación
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // Importar Firestore incluyendo 'query' y 'where' para filtrar por usuario
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAe0m1_geL_U9Q3a9QR2qiWLHUfxPh18DM",
@@ -190,19 +244,175 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let currentUser = null; // Guardará la info del usuario conectado
+        let unsubProfesores = null; // Para detener la escucha si cierra sesión
+        let unsubClases = null;
 
         let profesoresArray = [];
         let reconocimientoVoz = null;
         let estaGrabando = false;
 
-        // Recuperar API Key guardada en el navegador
+        // Recuperar API Key local
         window.onload = () => {
             const savedKey = localStorage.getItem('gemini_key');
             if(savedKey) document.getElementById('input-api-key').value = savedKey;
         };
 
-        // --- NAVEGACIÓN ---
+        // --- 1. SISTEMA DE AUTENTICACIÓN (LOGIN/LOGOUT) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // El usuario Inició Sesión
+                currentUser = user;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                
+                // Mostrar datos en el Sidebar
+                document.getElementById('user-name').innerText = user.displayName;
+                document.getElementById('user-photo').src = user.photoURL;
+
+                // Cargar solo los datos de ESTE usuario
+                cargarDatosUsuario();
+            } else {
+                // No hay sesión
+                currentUser = null;
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('app-container').style.display = 'none';
+                
+                // Limpiar escuchas de base de datos para no cruzar información
+                if(unsubProfesores) unsubProfesores();
+                if(unsubClases) unsubClases();
+            }
+        });
+
+        document.getElementById('btn-login-google').addEventListener('click', () => {
+            signInWithPopup(auth, googleProvider).catch(error => alert("Error al iniciar sesión: " + error.message));
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                showTab('profesores'); // resetear vista
+            });
+        });
+
+        // --- 2. CARGAR DATOS ESPECÍFICOS DEL USUARIO ---
+        function cargarDatosUsuario() {
+            // Consulta: Traer "profesores" DONDE el creador (userId) sea igual a mi ID (currentUser.uid)
+            const qProfesores = query(collection(db, "profesores"), where("userId", "==", currentUser.uid));
+            
+            unsubProfesores = onSnapshot(qProfesores, (snapshot) => {
+                profesoresArray = [];
+                const tbody = document.getElementById('profesores-tbody');
+                const selectCat = document.getElementById('select-categoria');
+                tbody.innerHTML = ''; selectCat.innerHTML = '<option value="">Seleccionar...</option>';
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    profesoresArray.push({ id: doc.id, ...data });
+                    tbody.innerHTML += `<tr><td><strong>${data.nombre}</strong></td><td><span class="badge">${data.categoria}</span></td></tr>`;
+                    selectCat.innerHTML += `<option value="${data.categoria}">${data.categoria}</option>`;
+                });
+                if(profesoresArray.length === 0) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No tienes profesores registrados en tu cuenta.</td></tr>';
+            });
+
+            // Consulta: Traer "clases" DONDE el creador sea igual a mi ID
+            const qClases = query(collection(db, "clases"), where("userId", "==", currentUser.uid));
+            
+            unsubClases = onSnapshot(qClases, (snapshot) => {
+                const contenedor = document.getElementById('contenedor-clases');
+                contenedor.innerHTML = '';
+                
+                if(snapshot.empty) {
+                    contenedor.innerHTML = '<p style="text-align:center; color:#64748b; padding: 20px;">No tienes historial de clases aún.</p>';
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const claseId = docSnap.id;
+                    const clase = docSnap.data();
+                    let tareasHTML = '';
+                    
+                    if(clase.tareas && clase.tareas.length > 0) {
+                        clase.tareas.forEach((t, index) => {
+                            const esCompletada = t.estado === 'Completada';
+                            tareasHTML += `
+                                <li class="task-item">
+                                    <span style="flex:1; ${esCompletada ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${t.desc}</span>
+                                    <span class="badge ${esCompletada ? 'badge-done' : 'badge-pending'}">${t.estado}</span>
+                                    <button onclick="cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${JSON.stringify(clase.tareas).replace(/"/g, '&quot;')})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'}" style="width:auto; margin:0; padding: 6px 12px; font-size: 0.85rem;">
+                                        ${esCompletada ? 'Deshacer' : '✔ Completar'}
+                                    </button>
+                                </li>
+                            `;
+                        });
+                    } else { tareasHTML = '<p style="color:#64748b; font-size:0.9rem;">No hubo tareas asignadas.</p>'; }
+
+                    contenedor.innerHTML += `
+                        <div class="class-card">
+                            <div class="class-header">
+                                <div>
+                                    <h3 style="color: var(--secondary-color); margin-bottom: 5px;">${clase.materia} (Día ${clase.dia})</h3>
+                                    <small style="color: #64748b;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha}</small>
+                                </div>
+                            </div>
+                            <div class="class-body">
+                                <div class="class-summary"><strong>Resumen:</strong> ${clase.resumen}</div>
+                                <h4 style="margin-bottom: 10px; color: var(--secondary-color);">Control de Tareas:</h4>
+                                <ul class="task-list">${tareasHTML}</ul>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // --- 3. GUARDAR DATOS ASIGNANDO EL USER ID ---
+        document.getElementById('btn-guardar-profesor').addEventListener('click', async () => {
+            const nombre = document.getElementById('nuevo-prof-nombre').value;
+            const categoria = document.getElementById('nuevo-prof-categoria').value;
+            if(!nombre || !categoria) return alert("Llena ambos campos.");
+            
+            // AGREGAR userId al documento
+            await addDoc(collection(db, "profesores"), { 
+                nombre: nombre, 
+                categoria: categoria,
+                userId: currentUser.uid // << VINCULAR AL USUARIO ACTUAL
+            });
+            document.getElementById('nuevo-prof-nombre').value = '';
+            document.getElementById('nuevo-prof-categoria').value = '';
+        });
+
+        document.getElementById('btn-guardar-clase').addEventListener('click', async () => {
+            const tareasClase = [];
+            document.querySelectorAll('#lista-validacion-ia div').forEach(div => {
+                const checkbox = div.querySelector('input');
+                if (checkbox && checkbox.checked) {
+                    tareasClase.push({ desc: div.querySelector('label').innerText, estado: 'Pendiente' });
+                }
+            });
+
+            const nuevaClase = {
+                materia: document.getElementById('titulo-clase-activa').innerText.replace('Clase: ', ''),
+                profesor: document.getElementById('input-profesor').value,
+                dia: document.getElementById('input-dia').value,
+                fecha: new Date().toLocaleDateString('es-ES'),
+                resumen: document.getElementById('textarea-resumen-ia').value,
+                tareas: tareasClase,
+                userId: currentUser.uid // << VINCULAR AL USUARIO ACTUAL
+            };
+
+            try {
+                await addDoc(collection(db, "clases"), nuevaClase);
+                alert("Clase guardada en tu historial privado.");
+                showTab('historial');
+            } catch (e) { alert("Error: " + e.message); }
+        });
+
+
+        // --- NAVEGACIÓN Y MICRÓFONO (Misma lógica visual) ---
         function showTab(tabId) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -213,36 +423,6 @@
             if(tabId === 'historial') document.getElementById('btn-historial').classList.add('active');
         }
 
-        document.getElementById('btn-profesores').addEventListener('click', () => showTab('profesores'));
-        document.getElementById('btn-nueva-clase').addEventListener('click', () => showTab('nueva-clase'));
-        document.getElementById('btn-historial').addEventListener('click', () => showTab('historial'));
-
-        // --- PROFESORES ---
-        onSnapshot(collection(db, "profesores"), (snapshot) => {
-            profesoresArray = [];
-            const tbody = document.getElementById('profesores-tbody');
-            const selectCat = document.getElementById('select-categoria');
-            tbody.innerHTML = ''; selectCat.innerHTML = '<option value="">Seleccionar...</option>';
-
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                profesoresArray.push({ id: doc.id, ...data });
-                tbody.innerHTML += `<tr><td><strong>${data.nombre}</strong></td><td><span class="badge">${data.categoria}</span></td></tr>`;
-                selectCat.innerHTML += `<option value="${data.categoria}">${data.categoria}</option>`;
-            });
-            if(profesoresArray.length === 0) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay profesores.</td></tr>';
-        });
-
-        document.getElementById('btn-guardar-profesor').addEventListener('click', async () => {
-            const nombre = document.getElementById('nuevo-prof-nombre').value;
-            const categoria = document.getElementById('nuevo-prof-categoria').value;
-            if(!nombre || !categoria) return alert("Llena ambos campos.");
-            await addDoc(collection(db, "profesores"), { nombre, categoria });
-            document.getElementById('nuevo-prof-nombre').value = '';
-            document.getElementById('nuevo-prof-categoria').value = '';
-        });
-
-        // --- NUEVA CLASE & MICRÓFONO ---
         document.getElementById('select-categoria').addEventListener('change', (e) => {
             const prof = profesoresArray.find(p => p.categoria === e.target.value);
             document.getElementById('input-profesor').value = prof ? prof.nombre : "Sin asignación";
@@ -285,12 +465,10 @@
             showTab('post-clase');
         });
 
-        // --- GEMINI ---
         document.getElementById('btn-procesar-ia').addEventListener('click', async () => {
             const apiKey = document.getElementById('input-api-key').value.trim();
-            if(!apiKey) return alert("Falta la API Key de Gemini.");
-            localStorage.setItem('gemini_key', apiKey); // Guardar localmente
-            
+            if(!apiKey) return alert("Pega tu API Key de Gemini.");
+            localStorage.setItem('gemini_key', apiKey);
             const notas = document.getElementById('textarea-apuntes-capturados').value;
             document.getElementById('loading-gemini').style.display = 'block';
             document.getElementById('btn-procesar-ia').style.display = 'none';
@@ -318,107 +496,16 @@
                     });
                 }
                 document.getElementById('resultado-gemini').style.display = 'block';
-            } catch (err) {
-                alert("Error: " + err.message);
-                document.getElementById('btn-procesar-ia').style.display = 'block';
-            } finally {
-                document.getElementById('loading-gemini').style.display = 'none';
-            }
+            } catch (err) { alert("Error: " + err.message); document.getElementById('btn-procesar-ia').style.display = 'block'; } 
+            finally { document.getElementById('loading-gemini').style.display = 'none'; }
         });
 
-        // --- GUARDAR CLASE EN HISTORIAL ---
-        document.getElementById('btn-guardar-clase').addEventListener('click', async () => {
-            const tareasClase = [];
-            document.querySelectorAll('#lista-validacion-ia div').forEach(div => {
-                const checkbox = div.querySelector('input');
-                if (checkbox && checkbox.checked) {
-                    tareasClase.push({ desc: div.querySelector('label').innerText, estado: 'Pendiente' });
-                }
-            });
-
-            const nuevaClase = {
-                materia: document.getElementById('titulo-clase-activa').innerText.replace('Clase: ', ''),
-                profesor: document.getElementById('input-profesor').value,
-                dia: document.getElementById('input-dia').value,
-                fecha: new Date().toLocaleDateString('es-ES'),
-                resumen: document.getElementById('textarea-resumen-ia').value,
-                tareas: tareasClase
-            };
-
-            try {
-                await addDoc(collection(db, "clases"), nuevaClase);
-                alert("Clase guardada en el historial.");
-                showTab('historial');
-            } catch (e) { alert("Error al guardar en Firebase: " + e.message); }
-        });
-
-        // --- CARGAR Y RENDERIZAR HISTORIAL DE CLASES ---
-        onSnapshot(collection(db, "clases"), (snapshot) => {
-            const contenedor = document.getElementById('contenedor-clases');
-            contenedor.innerHTML = '';
-            
-            if(snapshot.empty) {
-                contenedor.innerHTML = '<p style="text-align:center; color:#64748b; padding: 20px;">No hay clases registradas aún.</p>';
-                return;
-            }
-
-            snapshot.forEach((docSnap) => {
-                const claseId = docSnap.id;
-                const clase = docSnap.data();
-                
-                let tareasHTML = '';
-                if(clase.tareas && clase.tareas.length > 0) {
-                    clase.tareas.forEach((t, index) => {
-                        const esCompletada = t.estado === 'Completada';
-                        tareasHTML += `
-                            <li class="task-item">
-                                <span style="flex:1; ${esCompletada ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${t.desc}</span>
-                                <span class="badge ${esCompletada ? 'badge-done' : 'badge-pending'}">${t.estado}</span>
-                                <button onclick="cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}')" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'}" style="width:auto; margin:0; padding: 6px 12px; font-size: 0.85rem;">
-                                    ${esCompletada ? 'Deshacer' : '✔ Completar'}
-                                </button>
-                            </li>
-                        `;
-                    });
-                } else {
-                    tareasHTML = '<p style="color:#64748b; font-size:0.9rem;">No hubo tareas asignadas.</p>';
-                }
-
-                contenedor.innerHTML += `
-                    <div class="class-card">
-                        <div class="class-header">
-                            <div>
-                                <h3 style="color: var(--secondary-color); margin-bottom: 5px;">${clase.materia} (Día ${clase.dia})</h3>
-                                <small style="color: #64748b;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha}</small>
-                            </div>
-                        </div>
-                        <div class="class-body">
-                            <div class="class-summary"><strong>Resumen:</strong> ${clase.resumen}</div>
-                            <h4 style="margin-bottom: 10px; color: var(--secondary-color);">Control de Tareas:</h4>
-                            <ul class="task-list">${tareasHTML}</ul>
-                        </div>
-                    </div>
-                `;
-            });
-        });
-
-        // Hacer global la función para cambiar el estado de la tarea en Firebase
-        window.cambiarEstadoTarea = async (claseId, tareaIndex, estadoActual) => {
-            // Obtener la clase actual desde Firebase
-            const claseDoc = await getDocs(collection(db, "clases"));
-            let claseData = null;
-            claseDoc.forEach(d => { if(d.id === claseId) claseData = d.data(); });
-            
-            if(claseData) {
-                // Modificar el estado de esa tarea específica
-                const nuevoEstado = estadoActual === 'Pendiente' ? 'Completada' : 'Pendiente';
-                claseData.tareas[tareaIndex].estado = nuevoEstado;
-                
-                // Actualizar en Firebase
-                await updateDoc(doc(db, "clases", claseId), { tareas: claseData.tareas });
-            }
+        // Modificar tarea (Mejorado para evitar llamadas extras de lectura)
+        window.cambiarEstadoTarea = async (claseId, tareaIndex, estadoActual, arrayTareas) => {
+            const nuevoEstado = estadoActual === 'Pendiente' ? 'Completada' : 'Pendiente';
+            arrayTareas[tareaIndex].estado = nuevoEstado;
+            await updateDoc(doc(db, "clases", claseId), { tareas: arrayTareas });
         };
-
     </script>
 </body>
 </html>
