@@ -42,7 +42,8 @@
         /* --- UI COMPONENTES --- */
         .form-group { margin-bottom: 1.5rem; }
         label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark); }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: #f8fafc; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: #f8fafc; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); background-color: white; }
         textarea.live-notes { height: 200px; font-family: monospace; }
         
         .btn { background-color: var(--primary-color); color: white; border: none; padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; transition: background-color 0.2s; margin-top: 10px; }
@@ -56,9 +57,14 @@
         th { background-color: #f8fafc; font-weight: 600; }
         .badge { background-color: #dbeafe; color: var(--primary-color); padding: 4px 10px; border-radius: 20px; font-size: 0.875rem; font-weight: 600; }
 
-        .flex-row { display: flex; gap: 10px; align-items: flex-end; }
+        .flex-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
         .recording-indicator { display: none; color: #ef4444; font-weight: bold; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .validation-item { display: flex; gap: 10px; margin-bottom: 10px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; align-items: flex-start; }
+        .validation-item input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -76,11 +82,11 @@
             <h2>Gestión de Profesores</h2>
             
             <div class="form-group flex-row">
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 200px;">
                     <label>Nombre del Profesor</label>
                     <input type="text" id="nuevo-prof-nombre" placeholder="Ej. Prof. Luis Pérez">
                 </div>
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 200px;">
                     <label>Categoría (Materia)</label>
                     <input type="text" id="nuevo-prof-categoria" placeholder="Ej. Ciencias">
                 </div>
@@ -91,7 +97,7 @@
                 <table>
                     <thead><tr><th>Nombre</th><th>Categoría</th></tr></thead>
                     <tbody id="profesores-tbody">
-                        <tr><td colspan="2">Cargando profesores...</td></tr>
+                        <tr><td colspan="2">Cargando profesores desde Firebase...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -118,44 +124,58 @@
 
         <section id="clase-activa" class="view-section">
             <h2 id="titulo-clase-activa">Clase en Curso</h2>
+            <p id="info-clase-activa" style="margin-bottom: 25px; color: #64748b;"></p>
             
             <div class="form-group">
                <label for="notas-en-clase">📝 Transcripción y Apuntes en vivo</label>
                <textarea id="notas-en-clase" class="live-notes" placeholder="Haz clic en 'Iniciar Micrófono' y habla. El sistema transcribirá aquí..."></textarea>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
                 <button class="btn btn-outline" id="btn-microfono" style="width: auto;">🎙️ Iniciar Micrófono</button>
                 <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando...</span>
             </div>
 
-            <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Generar Reporte IA</button>
+            <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Revisar Apuntes</button>
         </section>
 
         <section id="post-clase" class="view-section">
             <h2>Reporte Inteligente con Gemini</h2>
-            <div id="loading-gemini" style="display: none; text-align: center;">
-                <p>Procesando con Gemini...</p>
+            
+            <div class="form-group">
+                <label>Texto Capturado (Audio a Texto)</label>
+                <textarea id="textarea-apuntes-capturados" rows="5" style="border: 2px solid var(--primary-color);"></textarea>
+                <small style="color: #64748b; display: block; margin-top: 5px;">Edita este texto si el micrófono entendió algo mal antes de que la IA extraiga las tareas.</small>
             </div>
+            
+            <button class="btn btn-outline" id="btn-procesar-ia" style="margin-bottom: 20px;">✨ Generar Resumen y Extraer Tareas</button>
+
+            <div id="loading-gemini" style="display: none; text-align: center; margin: 20px 0;">
+                <div class="loader"></div>
+                <p>Procesando con Gemini... Esto puede tardar unos segundos.</p>
+            </div>
+
             <div id="resultado-gemini" style="display: none;">
                 <div class="form-group">
-                    <label>Resumen de la Clase</label>
+                    <label>Resumen de la Clase (Generado por IA)</label>
                     <textarea id="textarea-resumen-ia" rows="4" readonly></textarea>
                 </div>
                 <h3>Verifica las Tareas Detectadas</h3>
-                <div id="lista-validacion-ia" style="margin-bottom: 20px;"></div>
-                <button class="btn btn-success" id="btn-guardar-tareas">Confirmar y Guardar Tareas</button>
+                <div id="lista-validacion-ia" style="margin-bottom: 20px; margin-top: 10px;"></div>
+                <button class="btn btn-success" id="btn-guardar-tareas">Confirmar y Guardar Tareas Oficiales</button>
             </div>
         </section>
 
         <section id="tareas" class="view-section">
             <h2>Tablero de Tareas</h2>
-            <table>
-                <thead><tr><th>Descripción</th><th>Estado</th></tr></thead>
-                <tbody id="tareas-tbody">
-                    <tr><td colspan="2">No hay tareas.</td></tr>
-                </tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead><tr><th>Descripción</th><th>Estado</th></tr></thead>
+                    <tbody id="tareas-tbody">
+                        <tr><td colspan="2">No hay tareas registradas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
     </main>
@@ -202,7 +222,6 @@
         document.getElementById('btn-tareas').addEventListener('click', () => showTab('tareas'));
 
         // --- GESTIÓN DE PROFESORES (FIREBASE FIRESTORE) ---
-        // Escuchar cambios en la base de datos en tiempo real
         onSnapshot(collection(db, "profesores"), (snapshot) => {
             profesoresArray = [];
             const tbody = document.getElementById('profesores-tbody');
@@ -214,23 +233,18 @@
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 profesoresArray.push({ id: doc.id, ...data });
-                
-                // Llenar tabla
                 tbody.innerHTML += `<tr><td><strong>${data.nombre}</strong></td><td><span class="badge">${data.categoria}</span></td></tr>`;
-                
-                // Llenar select de nueva clase
                 selectCat.innerHTML += `<option value="${data.categoria}">${data.categoria}</option>`;
             });
 
-            if(profesoresArray.length === 0) tbody.innerHTML = '<tr><td colspan="2">No hay profesores creados.</td></tr>';
+            if(profesoresArray.length === 0) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#64748b; padding: 20px;">No hay profesores creados. Añade uno arriba.</td></tr>';
         });
 
-        // Guardar nuevo profesor
         document.getElementById('btn-guardar-profesor').addEventListener('click', async () => {
             const nombre = document.getElementById('nuevo-prof-nombre').value;
             const categoria = document.getElementById('nuevo-prof-categoria').value;
             
-            if(!nombre || !categoria) return alert("Llena ambos campos.");
+            if(!nombre || !categoria) return alert("Llena ambos campos para crear un profesor.");
 
             try {
                 await addDoc(collection(db, "profesores"), { nombre, categoria });
@@ -238,25 +252,29 @@
                 document.getElementById('nuevo-prof-categoria').value = '';
             } catch (e) {
                 console.error("Error añadiendo documento: ", e);
-                alert("Error al guardar en Firebase. Revisa las reglas de seguridad de Firestore.");
+                alert("Error al guardar. Asegúrate de que las reglas de Firebase Firestore estén en 'allow read, write: if true;'");
             }
         });
 
         // --- NUEVA CLASE ---
         document.getElementById('select-categoria').addEventListener('change', (e) => {
             const prof = profesoresArray.find(p => p.categoria === e.target.value);
-            document.getElementById('input-profesor').value = prof ? prof.nombre : "";
+            document.getElementById('input-profesor').value = prof ? prof.nombre : "Sin asignación";
         });
 
         document.getElementById('btn-iniciar-clase').addEventListener('click', () => {
             const cat = document.getElementById('select-categoria').value;
-            if (!cat) return alert("Selecciona una materia.");
+            if (!cat) return alert("Selecciona una materia primero.");
+            const prof = document.getElementById('input-profesor').value;
+            const dia = document.getElementById('input-dia').value;
+            
             document.getElementById('titulo-clase-activa').innerText = `Clase: ${cat}`;
+            document.getElementById('info-clase-activa').innerText = `Profesor: ${prof} | Día: ${dia}`;
             document.getElementById('notas-en-clase').value = ""; 
             showTab('clase-activa');
         });
 
-        // --- TRANSCRIPCIÓN DE VOZ (SPEECH-TO-TEXT) ---
+        // --- TRANSCRIPCIÓN DE VOZ ---
         const btnMicrofono = document.getElementById('btn-microfono');
         const indicador = document.getElementById('indicador-grabando');
         const textAreaNotas = document.getElementById('notas-en-clase');
@@ -265,7 +283,7 @@
             reconocimientoVoz = new webkitSpeechRecognition();
             reconocimientoVoz.continuous = true;
             reconocimientoVoz.interimResults = true;
-            reconocimientoVoz.lang = 'es-ES'; // Ajustar según necesidad
+            reconocimientoVoz.lang = 'es-ES';
 
             reconocimientoVoz.onresult = (event) => {
                 let transcripcionFinal = '';
@@ -278,7 +296,6 @@
                     textAreaNotas.value += transcripcionFinal;
                 }
             };
-
             reconocimientoVoz.onerror = (event) => console.error("Error de voz:", event.error);
         } else {
             btnMicrofono.innerText = "❌ Navegador no soporta dictado";
@@ -287,7 +304,6 @@
 
         btnMicrofono.addEventListener('click', () => {
             if (!reconocimientoVoz) return;
-            
             if (estaGrabando) {
                 reconocimientoVoz.stop();
                 btnMicrofono.innerText = "🎙️ Iniciar Micrófono";
@@ -301,15 +317,31 @@
         });
 
         // --- GEMINI API INTEGRACIÓN ---
-        document.getElementById('btn-finalizar-clase').addEventListener('click', async () => {
-            if (estaGrabando) btnMicrofono.click(); // Apagar micro si está encendido
+        
+        // 1. Pasar de Clase Activa a Revisión de Apuntes
+        document.getElementById('btn-finalizar-clase').addEventListener('click', () => {
+            if (estaGrabando) btnMicrofono.click(); 
             
             const notas = textAreaNotas.value;
-            if (notas.trim().length < 5) return alert("No hay texto suficiente para analizar.");
-
+            
+            // Pasar los apuntes al nuevo cuadro para que el usuario pueda revisarlos
+            document.getElementById('textarea-apuntes-capturados').value = notas;
+            
+            // Ocultar resultados anteriores si los hubiera
+            document.getElementById('resultado-gemini').style.display = 'none';
+            document.getElementById('btn-procesar-ia').style.display = 'block';
+            
             showTab('post-clase');
+        });
+
+        // 2. Enviar a Gemini
+        async function procesarConIA() {
+            const notas = document.getElementById('textarea-apuntes-capturados').value;
+            if (notas.trim().length < 5) return alert("Escribe o dicta algunas notas para que la IA pueda procesarlas.");
+            
             document.getElementById('loading-gemini').style.display = 'block';
             document.getElementById('resultado-gemini').style.display = 'none';
+            document.getElementById('btn-procesar-ia').style.display = 'none';
 
             try {
                 const prompt = `Analiza esta transcripción de clase. Genera dos partes separadas por "---SEPARADOR---":
@@ -324,46 +356,77 @@ Transcripción: "${notas}"`;
                 });
 
                 const data = await response.json();
-                const textoIA = data.candidates[0].content.parts[0].text;
                 
+                // Manejo de errores de la API
+                if (!data.candidates || data.candidates.length === 0) {
+                    throw new Error(data.error ? data.error.message : "La API rechazó la solicitud. Verifica la cuota o la Key.");
+                }
+
+                const textoIA = data.candidates[0].content.parts[0].text;
                 const partes = textoIA.split("---SEPARADOR---");
-                document.getElementById('textarea-resumen-ia').value = partes[0] ? partes[0].trim() : "";
+                
+                document.getElementById('textarea-resumen-ia').value = partes[0] ? partes[0].trim() : "No se pudo generar resumen.";
                 
                 const listaDiv = document.getElementById('lista-validacion-ia');
                 listaDiv.innerHTML = '';
+                let tareasDetectadas = 0;
                 
                 if (partes[1]) {
                     partes[1].split('\n').forEach((linea, i) => {
                         if (linea.includes("TAREA:")) {
+                            tareasDetectadas++;
                             const desc = linea.replace(/TAREA:|[-*]/g, '').trim();
-                            listaDiv.innerHTML += `<div><input type="checkbox" id="t-${i}" checked> <label for="t-${i}">${desc}</label></div>`;
+                            listaDiv.innerHTML += `
+                                <div class="validation-item">
+                                    <input type="checkbox" id="t-${i}" checked> 
+                                    <label for="t-${i}" style="margin: 0; font-weight: 500;">${desc}</label>
+                                </div>`;
                         }
                     });
                 }
+                
+                if(tareasDetectadas === 0) {
+                    listaDiv.innerHTML = '<p style="color: #64748b;">No se detectaron tareas en esta transcripción.</p>';
+                }
+
                 document.getElementById('resultado-gemini').style.display = 'block';
             } catch (err) {
-                alert("Error con Gemini: " + err.message);
+                alert("Error de conexión con IA: " + err.message);
+                document.getElementById('btn-procesar-ia').style.display = 'block'; // Volver a mostrar botón
+                document.getElementById('btn-procesar-ia').innerText = "🔄 Reintentar Procesamiento IA";
             } finally {
                 document.getElementById('loading-gemini').style.display = 'none';
             }
-        });
+        }
+
+        document.getElementById('btn-procesar-ia').addEventListener('click', procesarConIA);
 
         // --- GUARDAR TAREAS ---
         document.getElementById('btn-guardar-tareas').addEventListener('click', () => {
-            document.querySelectorAll('#lista-validacion-ia div').forEach(div => {
+            const items = document.querySelectorAll('.validation-item');
+            let guardadas = 0;
+            
+            items.forEach(div => {
                 const checkbox = div.querySelector('input');
                 const label = div.querySelector('label');
                 if (checkbox && checkbox.checked) {
                     tareasOficiales.push(label.innerText);
+                    guardadas++;
                 }
             });
             
             const tbody = document.getElementById('tareas-tbody');
             tbody.innerHTML = '';
-            tareasOficiales.forEach(t => {
-                tbody.innerHTML += `<tr><td>${t}</td><td><span class="badge">Pendiente</span></td></tr>`;
-            });
             
+            if(tareasOficiales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay tareas.</td></tr>';
+            } else {
+                tareasOficiales.forEach(t => {
+                    tbody.innerHTML += `<tr><td>${t}</td><td><span class="badge" style="background-color: #fef08a; color: #854d0e;">Pendiente</span></td></tr>`;
+                });
+            }
+            
+            if(guardadas > 0) alert(`Se guardaron ${guardadas} tareas exitosamente.`);
             showTab('tareas');
         });
 
