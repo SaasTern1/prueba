@@ -87,22 +87,28 @@
         .btn-success:hover { background-color: #059669; }
         .btn-outline { background-color: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); }
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
+        .btn-small { padding: 6px 10px; font-size: 0.85rem; margin: 0; width: auto; } /* NUEVO BOTÓN COMPACTO */
         
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; font-weight: 600; color: var(--secondary-color); }
         
-        .badge { background-color: #dbeafe; color: var(--primary-color); padding: 4px 10px; border-radius: 20px; font-size: 0.875rem; font-weight: 600; }
+        .badge { background-color: #dbeafe; color: var(--primary-color); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
         .badge-pending { background-color: #fef08a; color: #854d0e; }
         .badge-done { background-color: #d1fae5; color: #065f46; }
 
-        /* CARDS DE HISTORIAL Y FILTRO */
-        .class-card { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
-        .class-header { background-color: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
-        .class-body { padding: 20px; }
-        .class-summary { background: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-bottom: 20px; border-left: 4px solid var(--primary-color); line-height: 1.5;}
-        .task-list { list-style: none; }
-        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;}
+        /* CARDS DE HISTORIAL Y FILTRO - DISEÑO COMPACTO */
+        .class-card { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 15px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
+        .class-header { background-color: #f8fafc; padding: 12px 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .class-body { padding: 15px; }
+        
+        /* Acordeón para el resumen */
+        details.compact-summary { margin-bottom: 15px; }
+        details.compact-summary summary { cursor: pointer; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; outline: none; margin-bottom: 8px;}
+        .class-summary-text { background: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 0.9rem; border-left: 3px solid var(--primary-color); line-height: 1.4;}
+        
+        .task-list { list-style: none; margin-top: 10px; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; flex-wrap: wrap; gap: 10px; font-size: 0.95rem;}
         
         /* ESTILOS DEL FILTRO DE TEMA */
         .filter-result { display: flex; align-items: center; gap: 10px; padding: 15px; border-radius: 8px; font-weight: 600; margin-bottom: 20px; }
@@ -241,7 +247,7 @@
             </section>
 
             <section id="historial" class="view-section">
-                <h2>Mi Historial y Tareas</h2>
+                <h2>Historial y Control de Tareas</h2>
                 <div id="contenedor-clases">
                     <p style="text-align:center; color:#64748b; padding: 40px;">No hay clases registradas aún en tu cuenta.</p>
                 </div>
@@ -330,7 +336,7 @@
             });
         });
 
-        // --- 2. GESTIÓN DE BASE DE DATOS (PROTEGIDA POR USUARIO) ---
+        // --- 2. GESTIÓN DE BASE DE DATOS E HISTORIAL (MEJORADO) ---
         function cargarDatosUsuario() {
             // Escuchar Profesores
             const qProfesores = query(collection(db, "profesores"), where("userId", "==", currentUser.uid));
@@ -356,7 +362,7 @@
                 contenedor.innerHTML = '';
                 
                 if(snapshot.empty) {
-                    contenedor.innerHTML = '<p style="text-align:center; color:#64748b; padding: 40px;">No tienes historial de clases aún. Finaliza tu primera clase para verla aquí.</p>';
+                    contenedor.innerHTML = '<p style="text-align:center; color:#64748b; padding: 40px;">No tienes historial de clases aún.</p>';
                     return;
                 }
 
@@ -368,29 +374,41 @@
                     if(clase.tareas && clase.tareas.length > 0) {
                         clase.tareas.forEach((t, index) => {
                             const esCompletada = t.estado === 'Completada';
+                            // Convertir array a string seguro para el DOM
+                            const arrayTareasStr = JSON.stringify(clase.tareas).replace(/"/g, '&quot;');
+                            
                             tareasHTML += `
                                 <li class="task-item">
                                     <span style="flex:1; font-weight: 500; ${esCompletada ? 'text-decoration: line-through; color: #94a3b8;' : 'color: #334155;'}">${t.desc}</span>
-                                    <span class="badge ${esCompletada ? 'badge-done' : 'badge-pending'}">${t.estado}</span>
-                                    <button onclick="window.cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${JSON.stringify(clase.tareas).replace(/"/g, '&quot;')})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'}" style="width:auto; margin:0; padding: 8px 16px; font-size: 0.85rem;">
-                                        ${esCompletada ? 'Deshacer' : '✔ Completar'}
-                                    </button>
+                                    <div style="display:flex; gap: 8px; align-items: center;">
+                                        <span class="badge ${esCompletada ? 'badge-done' : 'badge-pending'}">${t.estado}</span>
+                                        <button onclick="window.cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${arrayTareasStr})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'} btn-small" title="${esCompletada ? 'Deshacer' : 'Completar'}">
+                                            ${esCompletada ? 'Deshacer' : '✔'}
+                                        </button>
+                                        <button onclick="window.eliminarTarea('${claseId}', ${index}, ${arrayTareasStr})" class="btn btn-danger btn-small" title="Eliminar si no es tarea">
+                                            ✖
+                                        </button>
+                                    </div>
                                 </li>
                             `;
                         });
-                    } else { tareasHTML = '<p style="color:#64748b; font-size:0.95rem; font-style: italic;">No hubo tareas asignadas para esta clase.</p>'; }
+                    } else { 
+                        tareasHTML = '<p style="color:#64748b; font-size:0.9rem; font-style: italic; text-align:center;">No hay tareas para esta clase.</p>'; 
+                    }
 
                     contenedor.innerHTML += `
                         <div class="class-card">
                             <div class="class-header">
                                 <div>
-                                    <h3 style="color: var(--secondary-color); margin-bottom: 5px; font-size: 1.25rem;">${clase.materia} <span style="font-weight: normal; color: #64748b;">- Día ${clase.dia}</span></h3>
-                                    <span style="color: #64748b; font-weight: 600; font-size: 0.9rem;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha} | Relevancia: ${clase.score || 100}%</span>
+                                    <h3 style="color: var(--secondary-color); margin-bottom: 2px; font-size: 1.1rem;">${clase.materia} <span style="font-weight: normal; color: #64748b; font-size: 0.95rem;">(Día ${clase.dia})</span></h3>
+                                    <span style="color: #64748b; font-weight: 500; font-size: 0.85rem;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha}</span>
                                 </div>
                             </div>
                             <div class="class-body">
-                                <div class="class-summary"><strong>Resumen de la IA:</strong><br>${clase.resumen}</div>
-                                <h4 style="margin-bottom: 15px; color: var(--secondary-color); border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; display: inline-block;">Control de Tareas Generadas:</h4>
+                                <details class="compact-summary">
+                                    <summary>Ver resumen de la clase</summary>
+                                    <div class="class-summary-text">${clase.resumen}</div>
+                                </details>
                                 <ul class="task-list">${tareasHTML}</ul>
                             </div>
                         </div>
@@ -456,12 +474,7 @@
             // MAGIA PARA QUE NO SE APAGUE POR SILENCIO
             reconocimientoVoz.onend = () => {
                 if (estaGrabando) {
-                    // Si se corta solo, pero no presionaste "Detener", lo reiniciamos
-                    try {
-                        reconocimientoVoz.start();
-                    } catch(err) {
-                        console.error("Reinicio de voz en progreso...", err);
-                    }
+                    try { reconocimientoVoz.start(); } catch(err) { console.error("Reinicio de voz en progreso..."); }
                 }
             };
 
@@ -626,7 +639,8 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
             } catch (e) { alert("Error al guardar en el servidor: " + e.message); }
         });
 
-        // --- 5. FUNCIÓN GLOBAL PARA EDITAR TAREAS ---
+        // --- 5. FUNCIONES GLOBALES PARA TAREAS (COMPLETAR Y ELIMINAR) ---
+        
         window.cambiarEstadoTarea = async (claseId, tareaIndex, estadoActual, arrayTareas) => {
             try {
                 const nuevoEstado = estadoActual === 'Pendiente' ? 'Completada' : 'Pendiente';
@@ -634,6 +648,17 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
                 await updateDoc(doc(db, "clases", claseId), { tareas: arrayTareas });
             } catch(e) { console.error("Error actualizando tarea:", e); }
         };
+
+        // NUEVA FUNCIÓN: Eliminar tarea falsa/incorrecta del historial
+        window.eliminarTarea = async (claseId, tareaIndex, arrayTareas) => {
+            if(confirm("¿Estás seguro de que deseas eliminar esta tarea permanentemente?")) {
+                try {
+                    arrayTareas.splice(tareaIndex, 1); // Borrar la tarea del array
+                    await updateDoc(doc(db, "clases", claseId), { tareas: arrayTareas });
+                } catch(e) { console.error("Error eliminando tarea:", e); }
+            }
+        };
+
     </script>
 </body>
 </html>
