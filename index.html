@@ -77,7 +77,7 @@
         label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark); }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: #f8fafc; transition: 0.3s; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); background-color: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        textarea.live-notes { height: 200px; font-family: monospace; font-size: 1.1rem; line-height: 1.5;}
+        textarea.live-notes { height: 250px; font-family: monospace; font-size: 1.1rem; line-height: 1.5; resize: vertical; scroll-behavior: smooth;}
         
         .btn { background-color: var(--primary-color); color: white; border: none; padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 10px; }
         .btn:hover { background-color: #1d4ed8; }
@@ -104,7 +104,7 @@
         .task-list { list-style: none; }
         .task-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;}
         
-        /* ESTILOS DEL FILTRO DE TEMA (Basado en el C++) */
+        /* ESTILOS DEL FILTRO DE TEMA */
         .filter-result { display: flex; align-items: center; gap: 10px; padding: 15px; border-radius: 8px; font-weight: 600; margin-bottom: 20px; }
         .filter-relevant { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
         .filter-irrelevant { background-color: #fef08a; color: #854d0e; border: 1px solid #fde047; }
@@ -188,13 +188,13 @@
                 <p id="info-clase-activa" style="margin-bottom: 25px; color: #64748b; font-weight: 600;"></p>
                 
                 <div class="form-group">
-                   <label>📝 Transcripción y Apuntes en vivo</label>
-                   <textarea id="notas-en-clase" class="live-notes" placeholder="El sistema filtrará automáticamente si lo que dictas pertenece a la materia seleccionada..."></textarea>
+                   <label>📝 Transcripción y Apuntes en vivo (Continua)</label>
+                   <textarea id="notas-en-clase" class="live-notes" placeholder="El micrófono ahora es continuo. Capturará toda la clase sin detenerse..."></textarea>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: center;">
                     <button class="btn btn-outline" id="btn-microfono" style="width: auto; margin: 0;">🎙️ Iniciar Micrófono</button>
-                    <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando y transcribiendo...</span>
+                    <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando activamente...</span>
                 </div>
                 <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Procesar Filtro</button>
             </section>
@@ -277,7 +277,7 @@
         let profesoresArray = [];
         let reconocimientoVoz = null;
         let estaGrabando = false;
-        let materiaActualTema = ""; // Para el filtro de relevancia
+        let materiaActualTema = "";
 
         // INICIALIZACIÓN
         window.onload = () => {
@@ -412,7 +412,7 @@
             } catch (err) { alert("Error al guardar: " + err.message); }
         });
 
-        // --- 3. FLUJO DE CLASES (CREAR -> GRABAR -> IA FILTRO -> GUARDAR) ---
+        // --- 3. FLUJO DE CLASES Y MICRÓFONO CONTINUO ---
         
         // Auto-asignar profesor
         document.getElementById('select-categoria').addEventListener('change', (e) => {
@@ -420,29 +420,60 @@
             document.getElementById('input-profesor').value = prof ? prof.nombre : "";
         });
 
-        // Iniciar
+        // Iniciar Clase
         document.getElementById('btn-iniciar-clase').addEventListener('click', () => {
             const cat = document.getElementById('select-categoria').value;
             if (!cat) return alert("Selecciona una materia primero.");
-            materiaActualTema = cat; // Guardar tema para el filtro IA
+            materiaActualTema = cat;
             document.getElementById('titulo-clase-activa').innerText = `Clase de ${cat}`;
             document.getElementById('info-clase-activa').innerText = `Impartida por: ${document.getElementById('input-profesor').value} | Sesión N° ${document.getElementById('input-dia').value}`;
             document.getElementById('notas-en-clase').value = ""; 
             showTab('clase-activa');
         });
 
-        // Micrófono (Speech-to-Text)
+        // Configuración de Micrófono
         const btnMicrofono = document.getElementById('btn-microfono');
+        
         if ('webkitSpeechRecognition' in window) {
             reconocimientoVoz = new webkitSpeechRecognition();
             reconocimientoVoz.continuous = true;
             reconocimientoVoz.interimResults = true;
             reconocimientoVoz.lang = 'es-ES';
+            
             reconocimientoVoz.onresult = (e) => {
                 let txt = '';
-                for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) txt += e.results[i][0].transcript + ' '; }
-                if (txt) document.getElementById('notas-en-clase').value += txt + '\n';
+                for (let i = e.resultIndex; i < e.results.length; ++i) { 
+                    if (e.results[i].isFinal) txt += e.results[i][0].transcript + ' '; 
+                }
+                if (txt) {
+                    const textarea = document.getElementById('notas-en-clase');
+                    textarea.value += txt + '\n';
+                    // Scroll automático hacia abajo
+                    textarea.scrollTop = textarea.scrollHeight;
+                }
             };
+
+            // MAGIA PARA QUE NO SE APAGUE POR SILENCIO
+            reconocimientoVoz.onend = () => {
+                if (estaGrabando) {
+                    // Si se corta solo, pero no presionaste "Detener", lo reiniciamos
+                    try {
+                        reconocimientoVoz.start();
+                    } catch(err) {
+                        console.error("Reinicio de voz en progreso...", err);
+                    }
+                }
+            };
+
+            reconocimientoVoz.onerror = (e) => {
+                if(e.error === 'not-allowed' || e.error === 'audio-capture') {
+                    estaGrabando = false;
+                    btnMicrofono.innerText = "🎙️ Iniciar Micrófono"; 
+                    document.getElementById('indicador-grabando').style.display = "none";
+                    alert("Por favor, permite el acceso al micrófono en tu navegador.");
+                }
+            };
+
         } else {
             btnMicrofono.innerText = "Navegador incompatible";
             btnMicrofono.disabled = true;
@@ -451,28 +482,32 @@
         btnMicrofono.addEventListener('click', () => {
             if (!reconocimientoVoz) return;
             if (estaGrabando) { 
+                estaGrabando = false; // Apagado manual
                 reconocimientoVoz.stop(); 
                 btnMicrofono.innerText = "🎙️ Iniciar Micrófono"; 
                 document.getElementById('indicador-grabando').style.display = "none"; 
             } else { 
+                estaGrabando = true; // Encendido manual
                 reconocimientoVoz.start(); 
                 btnMicrofono.innerText = "⏹️ Detener Micrófono"; 
                 document.getElementById('indicador-grabando').style.display = "inline"; 
             }
-            estaGrabando = !estaGrabando;
         });
 
         // Pasar a Revisión
         document.getElementById('btn-finalizar-clase').addEventListener('click', () => {
-            if (estaGrabando) btnMicrofono.click(); // Apagar micro
+            if (estaGrabando) {
+                estaGrabando = false; 
+                reconocimientoVoz.stop(); // Detener micro al finalizar
+            }
             document.getElementById('textarea-apuntes-capturados').value = document.getElementById('notas-en-clase').value;
             document.getElementById('resultado-gemini').style.display = 'none';
             document.getElementById('btn-procesar-ia').style.display = 'block';
             showTab('post-clase');
         });
 
-        // Llamada a Gemini 2.5 Flash con LOGICA DE FILTRO DE TEMA
-        let puntajeIA = 0; // Para guardarlo en historial
+        // --- 4. IA Y FILTRO ---
+        let puntajeIA = 0; 
 
         document.getElementById('btn-procesar-ia').addEventListener('click', async () => {
             const apiKey = document.getElementById('input-api-key').value.trim();
@@ -486,7 +521,6 @@
             document.getElementById('btn-procesar-ia').style.display = 'none';
 
             try {
-                // PROMPT ADAPTADO DEL C++: Ahora pide formato JSON y evalúa la relevancia del Tema.
                 const prompt = `Eres un filtro de relevancia y asistente educativo.
 Tema actual de la clase: "${materiaActualTema}"
 Texto transcrito a evaluar: "${notas}"
@@ -508,12 +542,10 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
                 const data = await response.json();
                 if (!data.candidates) throw new Error(data.error ? data.error.message : "Error en API Key");
 
-                // Parsear el JSON devuelto por Gemini
                 let rawText = data.candidates[0].content.parts[0].text;
-                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim(); // Limpiar markdown si lo envía
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim(); 
                 const resultadoIA = JSON.parse(rawText);
 
-                // --- ACTUALIZAR INTERFAZ DEL FILTRO ---
                 puntajeIA = resultadoIA.score;
                 const uiFiltro = document.getElementById('filtro-relevancia-ui');
                 document.getElementById('filtro-score').innerText = resultadoIA.score + '%';
@@ -524,7 +556,6 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
                     document.getElementById('filtro-etiqueta').innerText = '[RELEVANTE] - Análisis Exitoso';
                     document.getElementById('contenido-relevante-ia').style.display = 'block';
                     
-                    // Rellenar Resumen y Tareas
                     document.getElementById('textarea-resumen-ia').value = resultadoIA.resumen || "No se generó resumen.";
                     const listaDiv = document.getElementById('lista-validacion-ia');
                     listaDiv.innerHTML = '';
@@ -541,12 +572,10 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
                         listaDiv.innerHTML = '<p style="color: #64748b;">No se detectaron tareas explícitas en este audio.</p>';
                     }
                 } else {
-                    // Si el filtro detecta que es IRRELEVANTE (ej. ruido o se habla de otra cosa)
                     uiFiltro.className = 'filter-result filter-irrelevant';
                     document.getElementById('filtro-etiqueta').innerText = '[FILTRADO] - Tema Irrelevante';
-                    document.getElementById('contenido-relevante-ia').style.display = 'none'; // Ocultar resumen y guardar
+                    document.getElementById('contenido-relevante-ia').style.display = 'none';
                     
-                    // Mostrar de nuevo el botón para intentar corregir el texto
                     document.getElementById('btn-procesar-ia').style.display = 'block';
                     document.getElementById('btn-procesar-ia').innerText = "Corregir texto e intentar de nuevo";
                 }
@@ -578,7 +607,7 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
                 dia: infoSeccion.split('|')[1].replace('Sesión N° ', '').trim(),
                 fecha: new Date().toLocaleDateString('es-ES'),
                 resumen: document.getElementById('textarea-resumen-ia').value,
-                score: puntajeIA, // Guardar la puntuación de relevancia del filtro
+                score: puntajeIA,
                 tareas: tareasClase,
                 userId: currentUser.uid 
             };
@@ -597,7 +626,7 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
             } catch (e) { alert("Error al guardar en el servidor: " + e.message); }
         });
 
-        // --- 4. FUNCIÓN GLOBAL PARA EDITAR TAREAS ---
+        // --- 5. FUNCIÓN GLOBAL PARA EDITAR TAREAS ---
         window.cambiarEstadoTarea = async (claseId, tareaIndex, estadoActual, arrayTareas) => {
             try {
                 const nuevoEstado = estadoActual === 'Pendiente' ? 'Completada' : 'Pendiente';
