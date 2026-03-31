@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taars - Plataforma Educativa Inteligente</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     <style>
         /* --- ESTILOS GLOBALES --- */
         :root {
@@ -87,7 +87,7 @@
         .btn-success:hover { background-color: #059669; }
         .btn-outline { background-color: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); }
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
-        .btn-small { padding: 6px 10px; font-size: 0.85rem; margin: 0; width: auto; } /* NUEVO BOTÓN COMPACTO */
+        .btn-small { padding: 6px 10px; font-size: 0.85rem; margin: 0; width: auto; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -97,12 +97,10 @@
         .badge-pending { background-color: #fef08a; color: #854d0e; }
         .badge-done { background-color: #d1fae5; color: #065f46; }
 
-        /* CARDS DE HISTORIAL Y FILTRO - DISEÑO COMPACTO */
+        /* CARDS DE HISTORIAL Y TAREAS */
         .class-card { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 15px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .class-header { background-color: #f8fafc; padding: 12px 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
         .class-body { padding: 15px; }
-        
-        /* Acordeón para el resumen */
         details.compact-summary { margin-bottom: 15px; }
         details.compact-summary summary { cursor: pointer; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; outline: none; margin-bottom: 8px;}
         .class-summary-text { background: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 0.9rem; border-left: 3px solid var(--primary-color); line-height: 1.4;}
@@ -110,6 +108,13 @@
         .task-list { list-style: none; margin-top: 10px; }
         .task-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; flex-wrap: wrap; gap: 10px; font-size: 0.95rem;}
         
+        /* ESTILOS DEL PANEL GLOBAL DE TAREAS */
+        .kanban-board { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; }
+        .kanban-column { flex: 1; min-width: 280px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .kanban-column h3 { margin-bottom: 15px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .task-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s;}
+        .task-card:hover { border-color: var(--primary-color); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
         /* ESTILOS DEL FILTRO DE TEMA */
         .filter-result { display: flex; align-items: center; gap: 10px; padding: 15px; border-radius: 8px; font-weight: 600; margin-bottom: 20px; }
         .filter-relevant { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
@@ -140,7 +145,8 @@
             <h1>TAARS</h1>
             <button class="nav-btn active" id="btn-profesores">👨‍🏫 Profesores</button>
             <button class="nav-btn" id="btn-nueva-clase">➕ Nueva Clase</button>
-            <button class="nav-btn" id="btn-historial">📚 Historial y Tareas</button>
+            <button class="nav-btn" id="btn-historial">📚 Historial de Clases</button>
+            <button class="nav-btn" id="btn-tareas-global">📋 Mis Tareas</button>
 
             <div class="user-profile">
                 <img id="user-photo" src="" alt="Perfil">
@@ -194,8 +200,8 @@
                 <p id="info-clase-activa" style="margin-bottom: 25px; color: #64748b; font-weight: 600;"></p>
                 
                 <div class="form-group">
-                   <label>📝 Transcripción y Apuntes en vivo (Continua)</label>
-                   <textarea id="notas-en-clase" class="live-notes" placeholder="El micrófono ahora es continuo. Capturará toda la clase sin detenerse..."></textarea>
+                   <label>📝 Transcripción con Filtro Antirrebote en vivo</label>
+                   <textarea id="notas-en-clase" class="live-notes" placeholder="Las palabras repetidas en menos de 1.5 segundos serán eliminadas automáticamente para mantener tus apuntes limpios..."></textarea>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: center;">
@@ -216,7 +222,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Texto Final Capturado (Puedes editarlo)</label>
+                    <label>Texto Final Capturado (Sin palabras repetidas)</label>
                     <textarea id="textarea-apuntes-capturados" rows="6" style="border: 2px solid var(--primary-color);"></textarea>
                 </div>
                 
@@ -247,9 +253,28 @@
             </section>
 
             <section id="historial" class="view-section">
-                <h2>Historial y Control de Tareas</h2>
+                <h2>Historial de Clases</h2>
                 <div id="contenedor-clases">
-                    <p style="text-align:center; color:#64748b; padding: 40px;">No hay clases registradas aún en tu cuenta.</p>
+                    <p style="text-align:center; color:#64748b; padding: 40px;">No hay clases registradas aún.</p>
+                </div>
+            </section>
+
+            <section id="tareas-global" class="view-section">
+                <h2>Estado de mis Tareas</h2>
+                <p style="color: #64748b;">Aquí puedes ver todas tus tareas organizadas. Cambia su estado para mantenerlas al día.</p>
+                
+                <div class="kanban-board">
+                    <div class="kanban-column">
+                        <h3 style="color: #b45309;">⏳ Pendientes</h3>
+                        <div id="lista-global-pendientes">
+                            </div>
+                    </div>
+
+                    <div class="kanban-column">
+                        <h3 style="color: #047857;">✅ Completadas</h3>
+                        <div id="lista-global-completadas">
+                            </div>
+                    </div>
                 </div>
             </section>
 
@@ -284,6 +309,9 @@
         let reconocimientoVoz = null;
         let estaGrabando = false;
         let materiaActualTema = "";
+        
+        // DICCIONARIO PARA ALGORITMO ANTIRREBOTE DE PALABRAS
+        let wordTimestamps = {};
 
         // INICIALIZACIÓN
         window.onload = () => {
@@ -300,11 +328,13 @@
             if(tabId === 'profesores') document.getElementById('btn-profesores').classList.add('active');
             if(tabId === 'nueva-clase') document.getElementById('btn-nueva-clase').classList.add('active');
             if(tabId === 'historial') document.getElementById('btn-historial').classList.add('active');
+            if(tabId === 'tareas-global') document.getElementById('btn-tareas-global').classList.add('active');
         }
 
         document.getElementById('btn-profesores').addEventListener('click', () => showTab('profesores'));
         document.getElementById('btn-nueva-clase').addEventListener('click', () => showTab('nueva-clase'));
         document.getElementById('btn-historial').addEventListener('click', () => showTab('historial'));
+        document.getElementById('btn-tareas-global').addEventListener('click', () => showTab('tareas-global'));
 
         // --- 1. AUTENTICACIÓN ---
         onAuthStateChanged(auth, (user) => {
@@ -336,7 +366,7 @@
             });
         });
 
-        // --- 2. GESTIÓN DE BASE DE DATOS E HISTORIAL (MEJORADO) ---
+        // --- 2. GESTIÓN DE BASE DE DATOS E HISTORIAL (CON PANEL GLOBAL DE TAREAS) ---
         function cargarDatosUsuario() {
             // Escuchar Profesores
             const qProfesores = query(collection(db, "profesores"), where("userId", "==", currentUser.uid));
@@ -355,48 +385,69 @@
                 if(profesoresArray.length === 0) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding: 20px; color: #64748b;">Aún no tienes profesores guardados.</td></tr>';
             }, (error) => console.error("Error cargando profesores: ", error));
 
-            // Escuchar Historial de Clases
+            // Escuchar Historial de Clases y TAREAS GLOBALES
             const qClases = query(collection(db, "clases"), where("userId", "==", currentUser.uid));
             unsubClases = onSnapshot(qClases, (snapshot) => {
-                const contenedor = document.getElementById('contenedor-clases');
-                contenedor.innerHTML = '';
+                const contenedorClases = document.getElementById('contenedor-clases');
+                const listaGlobalPendientes = document.getElementById('lista-global-pendientes');
+                const listaGlobalCompletadas = document.getElementById('lista-global-completadas');
+                
+                contenedorClases.innerHTML = '';
+                listaGlobalPendientes.innerHTML = '';
+                listaGlobalCompletadas.innerHTML = '';
                 
                 if(snapshot.empty) {
-                    contenedor.innerHTML = '<p style="text-align:center; color:#64748b; padding: 40px;">No tienes historial de clases aún.</p>';
+                    contenedorClases.innerHTML = '<p style="text-align:center; color:#64748b; padding: 40px;">No tienes historial de clases aún.</p>';
+                    listaGlobalPendientes.innerHTML = '<p style="color:#64748b;">No hay tareas pendientes.</p>';
+                    listaGlobalCompletadas.innerHTML = '<p style="color:#64748b;">No hay tareas completadas.</p>';
                     return;
                 }
 
                 snapshot.forEach((docSnap) => {
                     const claseId = docSnap.id;
                     const clase = docSnap.data();
-                    let tareasHTML = '';
+                    let tareasHTML_Historial = '';
                     
                     if(clase.tareas && clase.tareas.length > 0) {
                         clase.tareas.forEach((t, index) => {
                             const esCompletada = t.estado === 'Completada';
-                            // Convertir array a string seguro para el DOM
                             const arrayTareasStr = JSON.stringify(clase.tareas).replace(/"/g, '&quot;');
                             
-                            tareasHTML += `
+                            // 1. Armar HTML para la pestaña "Historial de clases"
+                            tareasHTML_Historial += `
                                 <li class="task-item">
                                     <span style="flex:1; font-weight: 500; ${esCompletada ? 'text-decoration: line-through; color: #94a3b8;' : 'color: #334155;'}">${t.desc}</span>
                                     <div style="display:flex; gap: 8px; align-items: center;">
                                         <span class="badge ${esCompletada ? 'badge-done' : 'badge-pending'}">${t.estado}</span>
-                                        <button onclick="window.cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${arrayTareasStr})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'} btn-small" title="${esCompletada ? 'Deshacer' : 'Completar'}">
-                                            ${esCompletada ? 'Deshacer' : '✔'}
-                                        </button>
-                                        <button onclick="window.eliminarTarea('${claseId}', ${index}, ${arrayTareasStr})" class="btn btn-danger btn-small" title="Eliminar si no es tarea">
-                                            ✖
-                                        </button>
+                                        <button onclick="window.cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${arrayTareasStr})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'} btn-small" title="${esCompletada ? 'Deshacer' : 'Completar'}">${esCompletada ? 'Deshacer' : '✔'}</button>
+                                        <button onclick="window.eliminarTarea('${claseId}', ${index}, ${arrayTareasStr})" class="btn btn-danger btn-small" title="Eliminar si no es tarea">✖</button>
                                     </div>
                                 </li>
                             `;
+
+                            // 2. Armar HTML para la pestaña global "Mis Tareas"
+                            const cardGlobal = `
+                                <div class="task-card">
+                                    <p style="font-weight: 600; margin-bottom: 8px; color: #1e293b; ${esCompletada ? 'text-decoration: line-through; color: #94a3b8;' : ''}">${t.desc}</p>
+                                    <small style="color: #64748b; display: block; margin-bottom: 12px; font-weight: 500;">📚 ${clase.materia} | 📅 ${clase.fecha}</small>
+                                    <button onclick="window.cambiarEstadoTarea('${claseId}', ${index}, '${t.estado}', ${arrayTareasStr})" class="btn ${esCompletada ? 'btn-outline' : 'btn-success'} btn-small" style="width: 100%;">
+                                        ${esCompletada ? '🔄 Marcar como Pendiente' : '✔ Marcar Completada'}
+                                    </button>
+                                </div>
+                            `;
+                            
+                            if (esCompletada) {
+                                listaGlobalCompletadas.innerHTML += cardGlobal;
+                            } else {
+                                listaGlobalPendientes.innerHTML += cardGlobal;
+                            }
                         });
                     } else { 
-                        tareasHTML = '<p style="color:#64748b; font-size:0.9rem; font-style: italic; text-align:center;">No hay tareas para esta clase.</p>'; 
+                        tareasHTML_Historial = '<p style="color:#64748b; font-size:0.9rem; font-style: italic; text-align:center;">No hay tareas para esta clase.</p>'; 
                     }
 
-                    contenedor.innerHTML += `
+                    // Insertar Clase en el Historial
+                    contenedorClases.innerHTML += `
                         <div class="class-card">
                             <div class="class-header">
                                 <div>
@@ -409,11 +460,15 @@
                                     <summary>Ver resumen de la clase</summary>
                                     <div class="class-summary-text">${clase.resumen}</div>
                                 </details>
-                                <ul class="task-list">${tareasHTML}</ul>
+                                <ul class="task-list">${tareasHTML_Historial}</ul>
                             </div>
                         </div>
                     `;
                 });
+
+                // Mensajes de vacío para columnas de tareas
+                if(listaGlobalPendientes.innerHTML === '') listaGlobalPendientes.innerHTML = '<p style="color:#64748b; font-size: 0.95rem;">¡Todo al día! No hay tareas pendientes.</p>';
+                if(listaGlobalCompletadas.innerHTML === '') listaGlobalCompletadas.innerHTML = '<p style="color:#64748b; font-size: 0.95rem;">Aún no has completado ninguna tarea.</p>';
             });
         }
 
@@ -430,26 +485,54 @@
             } catch (err) { alert("Error al guardar: " + err.message); }
         });
 
-        // --- 3. FLUJO DE CLASES Y MICRÓFONO CONTINUO ---
+        // --- 3. ALGORITMO ANTIRREBOTE Y MICRÓFONO CONTINUO ---
         
-        // Auto-asignar profesor
+        // Función para filtrar palabras repetidas en un lapso de tiempo corto
+        function filtrarPalabrasRepetidas(transcriptCrudo) {
+            const palabras = transcriptCrudo.trim().split(/\s+/);
+            const now = Date.now();
+            const palabrasFiltradas = [];
+            
+            palabras.forEach(palabra => {
+                // Limpiar la palabra para compararla (quitar comas, puntos, pasar a minúsculas)
+                const palabraLimpia = palabra.toLowerCase().replace(/[^a-záéíóúñü]/g, '');
+                
+                // Si la palabra es puro símbolo, la dejamos pasar
+                if(palabraLimpia.length === 0) {
+                    palabrasFiltradas.push(palabra);
+                    return;
+                }
+                
+                // Verificar si la palabra se dijo hace menos de 1500ms (1.5 segundos)
+                if (wordTimestamps[palabraLimpia] && (now - wordTimestamps[palabraLimpia] < 1500)) {
+                    // Es un eco / repetición muy rápida. Se ignora.
+                    console.log(`[Filtro] Palabra bloqueada por eco: "${palabra}"`);
+                } else {
+                    // Palabra válida. Guardar nuevo timestamp y añadirla al resultado.
+                    wordTimestamps[palabraLimpia] = now;
+                    palabrasFiltradas.push(palabra);
+                }
+            });
+            
+            return palabrasFiltradas.join(' ');
+        }
+
         document.getElementById('select-categoria').addEventListener('change', (e) => {
             const prof = profesoresArray.find(p => p.categoria === e.target.value);
             document.getElementById('input-profesor').value = prof ? prof.nombre : "";
         });
 
-        // Iniciar Clase
         document.getElementById('btn-iniciar-clase').addEventListener('click', () => {
             const cat = document.getElementById('select-categoria').value;
             if (!cat) return alert("Selecciona una materia primero.");
             materiaActualTema = cat;
+            wordTimestamps = {}; // Limpiar la memoria del filtro al iniciar nueva clase
             document.getElementById('titulo-clase-activa').innerText = `Clase de ${cat}`;
             document.getElementById('info-clase-activa').innerText = `Impartida por: ${document.getElementById('input-profesor').value} | Sesión N° ${document.getElementById('input-dia').value}`;
             document.getElementById('notas-en-clase').value = ""; 
             showTab('clase-activa');
         });
 
-        // Configuración de Micrófono
         const btnMicrofono = document.getElementById('btn-microfono');
         
         if ('webkitSpeechRecognition' in window) {
@@ -459,22 +542,28 @@
             reconocimientoVoz.lang = 'es-ES';
             
             reconocimientoVoz.onresult = (e) => {
-                let txt = '';
+                let txtFinal = '';
                 for (let i = e.resultIndex; i < e.results.length; ++i) { 
-                    if (e.results[i].isFinal) txt += e.results[i][0].transcript + ' '; 
+                    if (e.results[i].isFinal) {
+                        let oracionCruda = e.results[i][0].transcript;
+                        // Pasamos la oración por el filtro antirrebote
+                        let oracionLimpia = filtrarPalabrasRepetidas(oracionCruda);
+                        if (oracionLimpia.trim().length > 0) {
+                            txtFinal += oracionLimpia + ' ';
+                        }
+                    } 
                 }
-                if (txt) {
+                
+                if (txtFinal) {
                     const textarea = document.getElementById('notas-en-clase');
-                    textarea.value += txt + '\n';
-                    // Scroll automático hacia abajo
-                    textarea.scrollTop = textarea.scrollHeight;
+                    textarea.value += txtFinal + '\n';
+                    textarea.scrollTop = textarea.scrollHeight; // Scroll hacia abajo
                 }
             };
 
-            // MAGIA PARA QUE NO SE APAGUE POR SILENCIO
             reconocimientoVoz.onend = () => {
                 if (estaGrabando) {
-                    try { reconocimientoVoz.start(); } catch(err) { console.error("Reinicio de voz en progreso..."); }
+                    try { reconocimientoVoz.start(); } catch(err) { console.error("Reinicio de voz...", err); }
                 }
             };
 
@@ -483,7 +572,7 @@
                     estaGrabando = false;
                     btnMicrofono.innerText = "🎙️ Iniciar Micrófono"; 
                     document.getElementById('indicador-grabando').style.display = "none";
-                    alert("Por favor, permite el acceso al micrófono en tu navegador.");
+                    alert("Permite el acceso al micrófono en tu navegador.");
                 }
             };
 
@@ -495,23 +584,22 @@
         btnMicrofono.addEventListener('click', () => {
             if (!reconocimientoVoz) return;
             if (estaGrabando) { 
-                estaGrabando = false; // Apagado manual
+                estaGrabando = false; 
                 reconocimientoVoz.stop(); 
                 btnMicrofono.innerText = "🎙️ Iniciar Micrófono"; 
                 document.getElementById('indicador-grabando').style.display = "none"; 
             } else { 
-                estaGrabando = true; // Encendido manual
+                estaGrabando = true; 
                 reconocimientoVoz.start(); 
                 btnMicrofono.innerText = "⏹️ Detener Micrófono"; 
                 document.getElementById('indicador-grabando').style.display = "inline"; 
             }
         });
 
-        // Pasar a Revisión
         document.getElementById('btn-finalizar-clase').addEventListener('click', () => {
             if (estaGrabando) {
                 estaGrabando = false; 
-                reconocimientoVoz.stop(); // Detener micro al finalizar
+                reconocimientoVoz.stop(); 
             }
             document.getElementById('textarea-apuntes-capturados').value = document.getElementById('notas-en-clase').value;
             document.getElementById('resultado-gemini').style.display = 'none';
@@ -603,7 +691,6 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
             }
         });
 
-        // Guardar Clase
         document.getElementById('btn-guardar-clase').addEventListener('click', async () => {
             const tareasClase = [];
             document.querySelectorAll('#lista-validacion-ia div').forEach(div => {
@@ -639,8 +726,7 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
             } catch (e) { alert("Error al guardar en el servidor: " + e.message); }
         });
 
-        // --- 5. FUNCIONES GLOBALES PARA TAREAS (COMPLETAR Y ELIMINAR) ---
-        
+        // --- 5. FUNCIONES GLOBALES PARA TAREAS ---
         window.cambiarEstadoTarea = async (claseId, tareaIndex, estadoActual, arrayTareas) => {
             try {
                 const nuevoEstado = estadoActual === 'Pendiente' ? 'Completada' : 'Pendiente';
@@ -649,11 +735,10 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
             } catch(e) { console.error("Error actualizando tarea:", e); }
         };
 
-        // NUEVA FUNCIÓN: Eliminar tarea falsa/incorrecta del historial
         window.eliminarTarea = async (claseId, tareaIndex, arrayTareas) => {
             if(confirm("¿Estás seguro de que deseas eliminar esta tarea permanentemente?")) {
                 try {
-                    arrayTareas.splice(tareaIndex, 1); // Borrar la tarea del array
+                    arrayTareas.splice(tareaIndex, 1); 
                     await updateDoc(doc(db, "clases", claseId), { tareas: arrayTareas });
                 } catch(e) { console.error("Error eliminando tarea:", e); }
             }
