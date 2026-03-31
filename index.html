@@ -96,7 +96,7 @@
         .badge-pending { background-color: #fef08a; color: #854d0e; }
         .badge-done { background-color: #d1fae5; color: #065f46; }
 
-        /* CARDS DE HISTORIAL */
+        /* CARDS DE HISTORIAL Y FILTRO */
         .class-card { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .class-header { background-color: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
         .class-body { padding: 20px; }
@@ -104,6 +104,12 @@
         .task-list { list-style: none; }
         .task-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;}
         
+        /* ESTILOS DEL FILTRO DE TEMA (Basado en el C++) */
+        .filter-result { display: flex; align-items: center; gap: 10px; padding: 15px; border-radius: 8px; font-weight: 600; margin-bottom: 20px; }
+        .filter-relevant { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .filter-irrelevant { background-color: #fef08a; color: #854d0e; border: 1px solid #fde047; }
+        .score-circle { display: inline-flex; justify-content: center; align-items: center; width: 40px; height: 40px; border-radius: 50%; background: white; color: inherit; font-weight: bold; font-size: 0.9rem;}
+
         .recording-indicator { display: none; color: #ef4444; font-weight: bold; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
@@ -183,23 +189,22 @@
                 
                 <div class="form-group">
                    <label>📝 Transcripción y Apuntes en vivo</label>
-                   <textarea id="notas-en-clase" class="live-notes" placeholder="1. Presiona 'Iniciar Micrófono'.&#10;2. Habla o dicta la clase.&#10;3. Asegúrate de incluir palabras como 'Tarea' o 'Deberes' para que la IA las detecte."></textarea>
+                   <textarea id="notas-en-clase" class="live-notes" placeholder="El sistema filtrará automáticamente si lo que dictas pertenece a la materia seleccionada..."></textarea>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: center;">
                     <button class="btn btn-outline" id="btn-microfono" style="width: auto; margin: 0;">🎙️ Iniciar Micrófono</button>
                     <span class="recording-indicator" id="indicador-grabando">🔴 Escuchando y transcribiendo...</span>
                 </div>
-                <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Revisar Apuntes</button>
+                <button class="btn btn-danger" id="btn-finalizar-clase">Finalizar Clase y Procesar Filtro</button>
             </section>
 
             <section id="post-clase" class="view-section">
-                <h2>Procesamiento Inteligente</h2>
+                <h2>Procesamiento Inteligente con Filtro</h2>
                 
                 <div class="form-group" style="background: #e0f2fe; padding: 20px; border-radius: 8px; border: 1px solid #7dd3fc; margin-bottom: 25px;">
                     <label style="color: #0369a1; display: flex; justify-content: space-between; align-items: center;">
                         <span>🔑 Tu API Key de Google Gemini</span>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 0.85rem; color: #0284c7; text-decoration: underline;">Obtener Key</a>
                     </label>
                     <input type="password" id="input-api-key" placeholder="Pega tu API Key de Gemini 2.5 aquí..." style="margin-top: 10px;">
                 </div>
@@ -209,18 +214,29 @@
                     <textarea id="textarea-apuntes-capturados" rows="6" style="border: 2px solid var(--primary-color);"></textarea>
                 </div>
                 
-                <button class="btn btn-outline" id="btn-procesar-ia" style="margin-bottom: 25px;">✨ Generar Resumen y Extraer Tareas</button>
+                <button class="btn btn-outline" id="btn-procesar-ia" style="margin-bottom: 25px;">✨ Aplicar Filtro de Tema y Extraer Tareas</button>
 
-                <div id="loading-gemini" style="display: none; text-align: center;"><div class="loader"></div><p style="color: #64748b; margin-top: 10px;">La IA está leyendo tus apuntes...</p></div>
+                <div id="loading-gemini" style="display: none; text-align: center;"><div class="loader"></div><p style="color: #64748b; margin-top: 10px;">Analizando relevancia y procesando datos...</p></div>
 
                 <div id="resultado-gemini" style="display: none; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <div class="form-group">
-                        <label style="color: var(--primary-color);">Resumen generado de la Clase</label>
-                        <textarea id="textarea-resumen-ia" rows="4" readonly style="background: white;"></textarea>
+                    
+                    <div id="filtro-relevancia-ui" class="filter-result">
+                        <div class="score-circle" id="filtro-score">0%</div>
+                        <div style="flex: 1;">
+                            <div id="filtro-etiqueta" style="font-size: 1.1rem;">ESTADO</div>
+                            <div id="filtro-razon" style="font-weight: normal; font-size: 0.9rem;">Razón...</div>
+                        </div>
                     </div>
-                    <h3 style="color: var(--secondary-color); margin-bottom: 15px;">Verifica las Tareas Detectadas</h3>
-                    <div id="lista-validacion-ia" style="margin-bottom: 25px;"></div>
-                    <button class="btn btn-success" id="btn-guardar-clase">Guardar Clase y Tareas en mi Historial</button>
+
+                    <div id="contenido-relevante-ia">
+                        <div class="form-group">
+                            <label style="color: var(--primary-color);">Resumen generado de la Clase</label>
+                            <textarea id="textarea-resumen-ia" rows="4" readonly style="background: white;"></textarea>
+                        </div>
+                        <h3 style="color: var(--secondary-color); margin-bottom: 15px;">Verifica las Tareas Detectadas</h3>
+                        <div id="lista-validacion-ia" style="margin-bottom: 25px;"></div>
+                        <button class="btn btn-success" id="btn-guardar-clase">Guardar Clase y Tareas en mi Historial</button>
+                    </div>
                 </div>
             </section>
 
@@ -261,6 +277,7 @@
         let profesoresArray = [];
         let reconocimientoVoz = null;
         let estaGrabando = false;
+        let materiaActualTema = ""; // Para el filtro de relevancia
 
         // INICIALIZACIÓN
         window.onload = () => {
@@ -368,7 +385,7 @@
                             <div class="class-header">
                                 <div>
                                     <h3 style="color: var(--secondary-color); margin-bottom: 5px; font-size: 1.25rem;">${clase.materia} <span style="font-weight: normal; color: #64748b;">- Día ${clase.dia}</span></h3>
-                                    <span style="color: #64748b; font-weight: 600; font-size: 0.9rem;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha}</span>
+                                    <span style="color: #64748b; font-weight: 600; font-size: 0.9rem;">👨‍🏫 ${clase.profesor} | 📅 ${clase.fecha} | Relevancia: ${clase.score || 100}%</span>
                                 </div>
                             </div>
                             <div class="class-body">
@@ -395,7 +412,7 @@
             } catch (err) { alert("Error al guardar: " + err.message); }
         });
 
-        // --- 3. FLUJO DE CLASES (CREAR -> GRABAR -> IA -> GUARDAR) ---
+        // --- 3. FLUJO DE CLASES (CREAR -> GRABAR -> IA FILTRO -> GUARDAR) ---
         
         // Auto-asignar profesor
         document.getElementById('select-categoria').addEventListener('change', (e) => {
@@ -407,6 +424,7 @@
         document.getElementById('btn-iniciar-clase').addEventListener('click', () => {
             const cat = document.getElementById('select-categoria').value;
             if (!cat) return alert("Selecciona una materia primero.");
+            materiaActualTema = cat; // Guardar tema para el filtro IA
             document.getElementById('titulo-clase-activa').innerText = `Clase de ${cat}`;
             document.getElementById('info-clase-activa').innerText = `Impartida por: ${document.getElementById('input-profesor').value} | Sesión N° ${document.getElementById('input-dia').value}`;
             document.getElementById('notas-en-clase').value = ""; 
@@ -423,7 +441,7 @@
             reconocimientoVoz.onresult = (e) => {
                 let txt = '';
                 for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) txt += e.results[i][0].transcript + ' '; }
-                if (txt) document.getElementById('notas-en-clase').value += txt + '\n'; // Agrega salto de linea por cada pausa
+                if (txt) document.getElementById('notas-en-clase').value += txt + '\n';
             };
         } else {
             btnMicrofono.innerText = "Navegador incompatible";
@@ -453,20 +471,34 @@
             showTab('post-clase');
         });
 
-        // Llamada a Gemini 2.5 Flash
+        // Llamada a Gemini 2.5 Flash con LOGICA DE FILTRO DE TEMA
+        let puntajeIA = 0; // Para guardarlo en historial
+
         document.getElementById('btn-procesar-ia').addEventListener('click', async () => {
             const apiKey = document.getElementById('input-api-key').value.trim();
             if(!apiKey) return alert("Por favor, pega tu API Key de Gemini en el recuadro azul.");
             localStorage.setItem('gemini_key', apiKey);
             
             const notas = document.getElementById('textarea-apuntes-capturados').value;
-            if(notas.trim().length < 5) return alert("El texto capturado es muy corto para generar un reporte.");
+            if(notas.trim().length < 5) return alert("El texto capturado es muy corto para evaluar.");
 
             document.getElementById('loading-gemini').style.display = 'block';
             document.getElementById('btn-procesar-ia').style.display = 'none';
 
             try {
-                const prompt = `Analiza esta transcripción de clase. Genera estrictamente dos partes separadas por "---SEPARADOR---":\n1. Un resumen coherente del tema tratado (máximo 3 líneas).\n2. Una lista de tareas o asignaciones. Cada tarea debe empezar obligatoriamente con la palabra "TAREA: ".\nTranscripción: "${notas}"`;
+                // PROMPT ADAPTADO DEL C++: Ahora pide formato JSON y evalúa la relevancia del Tema.
+                const prompt = `Eres un filtro de relevancia y asistente educativo.
+Tema actual de la clase: "${materiaActualTema}"
+Texto transcrito a evaluar: "${notas}"
+
+Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin markdown adicional):
+{
+  "relevant": true/false (true si el texto pertenece o está fuertemente relacionado al tema "${materiaActualTema}"),
+  "reason": "Explicación breve de máximo 10 palabras del por qué",
+  "score": (número del 0 al 100 indicando nivel de relevancia),
+  "resumen": "Resumen de 3 líneas del texto (Déjalo vacío si relevant es false)",
+  "tareas": ["tarea 1", "tarea 2"] (Lista de tareas extraídas. Déjalo vacío si no hay o si relevant es false)
+}`;
                 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -474,40 +506,54 @@
                 });
                 
                 const data = await response.json();
-                if (!data.candidates) throw new Error(data.error ? data.error.message : "La API Key fue rechazada o superó su límite de uso.");
+                if (!data.candidates) throw new Error(data.error ? data.error.message : "Error en API Key");
 
-                const textoCrudo = data.candidates[0].content.parts[0].text;
-                const partes = textoCrudo.split("---SEPARADOR---");
+                // Parsear el JSON devuelto por Gemini
+                let rawText = data.candidates[0].content.parts[0].text;
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim(); // Limpiar markdown si lo envía
+                const resultadoIA = JSON.parse(rawText);
+
+                // --- ACTUALIZAR INTERFAZ DEL FILTRO ---
+                puntajeIA = resultadoIA.score;
+                const uiFiltro = document.getElementById('filtro-relevancia-ui');
+                document.getElementById('filtro-score').innerText = resultadoIA.score + '%';
+                document.getElementById('filtro-razon').innerText = resultadoIA.reason;
                 
-                // Rellenar Resumen
-                document.getElementById('textarea-resumen-ia').value = partes[0] ? partes[0].replace(/\*/g, '').trim() : "Resumen no disponible.";
-                
-                // Rellenar Tareas
-                const listaDiv = document.getElementById('lista-validacion-ia');
-                listaDiv.innerHTML = '';
-                let tareasEncontradas = 0;
-                
-                if (partes[1]) {
-                    partes[1].split('\n').forEach((linea, i) => {
-                        if (linea.includes("TAREA:")) {
-                            tareasEncontradas++;
-                            const desc = linea.replace(/TAREA:|[-*]/g, '').trim();
+                if (resultadoIA.relevant) {
+                    uiFiltro.className = 'filter-result filter-relevant';
+                    document.getElementById('filtro-etiqueta').innerText = '[RELEVANTE] - Análisis Exitoso';
+                    document.getElementById('contenido-relevante-ia').style.display = 'block';
+                    
+                    // Rellenar Resumen y Tareas
+                    document.getElementById('textarea-resumen-ia').value = resultadoIA.resumen || "No se generó resumen.";
+                    const listaDiv = document.getElementById('lista-validacion-ia');
+                    listaDiv.innerHTML = '';
+                    
+                    if (resultadoIA.tareas && resultadoIA.tareas.length > 0) {
+                        resultadoIA.tareas.forEach((tarea, i) => {
                             listaDiv.innerHTML += `
                             <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px; background: white; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
                                 <input type="checkbox" id="t-${i}" checked style="width: 20px; height: 20px;"> 
-                                <label for="t-${i}" style="margin: 0; font-weight: 500;">${desc}</label>
+                                <label for="t-${i}" style="margin: 0; font-weight: 500;">${tarea}</label>
                             </div>`;
-                        }
-                    });
-                }
-                
-                if(tareasEncontradas === 0){
-                    listaDiv.innerHTML = '<p style="color: #ef4444; font-weight: 600;">La IA no detectó ninguna tarea en el texto. (Intenta agregar "Tarea:" manualmente en tus apuntes o graba una nueva clase).</p>';
+                        });
+                    } else {
+                        listaDiv.innerHTML = '<p style="color: #64748b;">No se detectaron tareas explícitas en este audio.</p>';
+                    }
+                } else {
+                    // Si el filtro detecta que es IRRELEVANTE (ej. ruido o se habla de otra cosa)
+                    uiFiltro.className = 'filter-result filter-irrelevant';
+                    document.getElementById('filtro-etiqueta').innerText = '[FILTRADO] - Tema Irrelevante';
+                    document.getElementById('contenido-relevante-ia').style.display = 'none'; // Ocultar resumen y guardar
+                    
+                    // Mostrar de nuevo el botón para intentar corregir el texto
+                    document.getElementById('btn-procesar-ia').style.display = 'block';
+                    document.getElementById('btn-procesar-ia').innerText = "Corregir texto e intentar de nuevo";
                 }
 
                 document.getElementById('resultado-gemini').style.display = 'block';
             } catch (err) { 
-                alert("Error de Conexión IA: " + err.message); 
+                alert("Error de Conexión o Parseo IA: " + err.message); 
                 document.getElementById('btn-procesar-ia').style.display = 'block'; 
                 document.getElementById('btn-procesar-ia').innerText = "🔄 Reintentar Procesamiento";
             } finally { 
@@ -515,7 +561,7 @@
             }
         });
 
-        // Guardar Clase y finalizar flujo
+        // Guardar Clase
         document.getElementById('btn-guardar-clase').addEventListener('click', async () => {
             const tareasClase = [];
             document.querySelectorAll('#lista-validacion-ia div').forEach(div => {
@@ -523,7 +569,6 @@
                 if (checkbox && checkbox.checked) tareasClase.push({ desc: div.querySelector('label').innerText, estado: 'Pendiente' });
             });
 
-            // Extraer info de los headers de la sección 3
             const tituloSeccion = document.getElementById('titulo-clase-activa').innerText;
             const infoSeccion = document.getElementById('info-clase-activa').innerText;
             
@@ -533,24 +578,21 @@
                 dia: infoSeccion.split('|')[1].replace('Sesión N° ', '').trim(),
                 fecha: new Date().toLocaleDateString('es-ES'),
                 resumen: document.getElementById('textarea-resumen-ia').value,
+                score: puntajeIA, // Guardar la puntuación de relevancia del filtro
                 tareas: tareasClase,
-                userId: currentUser.uid // Identificador de Privacidad
+                userId: currentUser.uid 
             };
 
             try {
                 await addDoc(collection(db, "clases"), nuevaClase);
                 
-                // Limpieza visual para la próxima clase
                 document.getElementById('notas-en-clase').value = "";
                 document.getElementById('textarea-apuntes-capturados').value = "";
                 document.getElementById('resultado-gemini').style.display = "none";
                 document.getElementById('btn-procesar-ia').style.display = "block";
-                document.getElementById('btn-procesar-ia').innerText = "✨ Generar Resumen y Extraer Tareas";
+                document.getElementById('btn-procesar-ia').innerText = "✨ Aplicar Filtro de Tema y Extraer Tareas";
                 
-                // Redirigir a Historial
                 showTab('historial');
-                
-                // Scroll up
                 window.scrollTo(0, 0);
             } catch (e) { alert("Error al guardar en el servidor: " + e.message); }
         });
